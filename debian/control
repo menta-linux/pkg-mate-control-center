@@ -44,7 +44,7 @@ Build-Depends: cdbs,
                libpango1.0-dev,
                librsvg2-dev,
                libdconf-dev
-Standards-Version: 3.9.3
+Standards-Version: 3.9.5
 Homepage: http://www.mate-desktop.org/
 
 Package: mate-control-center
