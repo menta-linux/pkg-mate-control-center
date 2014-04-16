@@ -1,9 +1,5 @@
-mate-control-center (1.6.2-1) UNRELEASED; urgency=low
+mate-control-center (1.8.0-1.1) UNRELEASED; urgency=low
 
-  * Initial release. (Closes: #734663)
+  * Initial release. (Closes: #734663).
 
- -- Stefano Karapetsas <stefano@karapetsas.com>  Wed, 03 Jul 2013 12:51:13 +0200
-
-
-
-
+ -- Vangelis Mouhtsis <vangelis@gnugr.org>  Wed, 16 Apr 2014 13:41:46 +0300
