@@ -1,7 +1,7 @@
 Format: http://www.debian.org/doc/packaging-manuals/copyright-format/1.0/
 Upstream-Name: mate-control-center
 Upstream-Contact: Stefano Karapetsas <stefano@karapetsas.com>
-Source: http://pub.mate-desktop.org/releases/
+Source: http://git.mate-desktop.org/mate-control-center/
 
 Files: libslab/app-resizer.c
        libslab/app-resizer.h
@@ -36,7 +36,7 @@ Files: libslab/app-resizer.c
        libslab/tile-action.c
        libslab/tile.c
        libslab/tile.h
-Copyright: 2006, 2007 Novell, Inc
+Copyright: 2006, 2007, Novell, Inc
 License: LGPL-2+
  
 Files: capplets/about-me/marshal.c
@@ -82,7 +82,7 @@ Files: capplets/appearance/appearance-desktop.c
        capplets/common/gtkrc-utils.c
        capplets/common/gtkrc-utils.h
        capplets/keyboard/mate-keyboard-properties-a11y.c
-Copyright: 2007, 2008, 2010 The MATE Foundation
+Copyright: 2007, 2008, 2010, The MATE Foundation
 License: GPL-2+
  
 Files: capplets/appearance/mate-wp-info.c
@@ -118,7 +118,7 @@ Files: capplets/about-me/fingerprint-strings.h
        capplets/about-me/mate-about-me-fingerprint.h
        font-viewer/totem-resources.c
        font-viewer/totem-resources.h
-Copyright: 2007, 2008 Bastien Nocera <hadess@hadess.net>
+Copyright: 2007, 2008, Bastien Nocera <hadess@hadess.net>
 License: GPL-2+
  
 Files: capplets/windows/mate-window-properties.c
@@ -126,7 +126,7 @@ Files: capplets/windows/mate-window-properties.c
        libwindow-settings/mate-window-manager.c
        libwindow-settings/mate-window-manager.h
        libwindow-settings/mate-wm-manager.c
-Copyright: 1998, 2002 Red Hat, Inc
+Copyright: 1998, 2002, Red Hat, Inc
            2002, Seth Nickell
 License: GPL-2+
 
@@ -135,7 +135,7 @@ Files: capplets/common/capplet-util.c
        capplets/common/file-transfer-dialog.c
        capplets/common/file-transfer-dialog.h
        capplets/keyboard/mate-keyboard-properties-a11y.h
-Copyright: 2001, 2002 Ximian, Inc
+Copyright: 2001, 2002, Ximian, Inc
 License: GPL-2+
  
 Files: typing-break/drw-break-window.c
@@ -143,7 +143,7 @@ Files: typing-break/drw-break-window.c
        typing-break/drw-monitor.c
        typing-break/main.c
 Copyright: 2002, CodeFactory AB
-           2002, 2003 Richard Hult <richard@imendio.com>
+           2002, 2003, Richard Hult <richard@imendio.com>
 License: GPL-2+
  
 Files: capplets/appearance/appearance-support.c
@@ -157,7 +157,7 @@ Files: capplets/appearance/appearance-font.c
        capplets/appearance/appearance-font.h
        capplets/appearance/appearance-style.c
        capplets/appearance/appearance.h
-Copyright: 2007, 2010 The GNOME Foundation
+Copyright: 2007, 2010, The GNOME Foundation
   2007, The GNOME Foundation
 License: GPL-2+
 
@@ -170,7 +170,7 @@ License: GPL-2+
 Files: typing-break/drw-utils.c
        typing-break/drw-utils.h
        typing-break/drwright.h
-Copyright: 2002, 2003 Richard Hult <richard@imendio.com>
+Copyright: 2002, 2003, Richard Hult <richard@imendio.com>
 License: GPL-2+
 
 Files: capplets/about-me/e-image-chooser.c
@@ -206,7 +206,8 @@ License: LGPL-2+
 Files: typing-break/drw-selection.c
        typing-break/drw-selection.h
 Copyright: 2002, Red Hat, Inc
-License: UNKNOWN
+License:
+ Using license from COPYING file.
 
 Files: capplets/default-applications/mate-da-capplet.h
 Copyright: 2005-2006, Luca Cavalli
@@ -292,8 +293,8 @@ Copyright: 2002, Red Hat, Inc.
 License: LGPL-2+
 
 Files: debian/*
-Copyright: 2011 Stefano Karapetsas <stefano@karapetsas.com>
-           2013 Mike Gabriel <sunweaver@debian.org>
+Copyright: 2011, Stefano Karapetsas <stefano@karapetsas.com>
+           2013, Mike Gabriel <sunweaver@debian.org>
 License: GPL-2+
 
 License: GPL-2+
