@@ -1,0 +1,22 @@
+Description: Don't build non-DFSG (GFDL 1.1 licensed) help files
+Author: Mike Gabriel <mike.gabriel@das-netzwerkteam.de>
+--- a/Makefile.am
++++ b/Makefile.am
+@@ -1,5 +1,5 @@
+-SUBDIRS = po libwindow-settings capplets font-viewer help
+-DIST_SUBDIRS = po libwindow-settings capplets font-viewer help libslab shell typing-break
++SUBDIRS = po libwindow-settings capplets font-viewer
++DIST_SUBDIRS = po libwindow-settings capplets font-viewer libslab shell typing-break
+ 
+ if HAVE_LIBSLAB
+ SUBDIRS += libslab
+--- a/configure.ac
++++ b/configure.ac
+@@ -367,7 +367,6 @@
+ capplets/windows/mate-window-properties.desktop.in
+ font-viewer/Makefile
+ font-viewer/mate-font-viewer.desktop.in
+-help/Makefile
+ libwindow-settings/Makefile
+ libwindow-settings/mate-window-settings-2.0.pc
+ po/Makefile.in
