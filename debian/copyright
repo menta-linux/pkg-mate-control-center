@@ -63,9 +63,9 @@ Files: capplets/about-me/marshal.c
        libwindow-settings/marco-window-manager.h
        libwindow-settings/mate-wm-manager.h
 Copyright: *No copyright*
-License: UNKNOWN
-Specified files lack copyright/license information in the
-(non-present) file header.
+License: GPL-2+
+Comment:
+ Using license from COPYING file.
 
 Files: capplets/appearance/appearance-desktop.c
        capplets/appearance/appearance-desktop.h
