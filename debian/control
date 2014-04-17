@@ -59,9 +59,9 @@ Depends: ${shlibs:Depends},
          libglib2.0-bin
 Suggests: gconf2
 Conflicts: libslab0,
-           libslab0a
+           libslab0a,
 Description: utilities to configure the MATE desktop
- This package contains configuration applets for the MATE desktop,
+ The MATE control center contains configuration applets for the MATE desktop,
  allowing to set accessibility configuration, desktop fonts, keyboard
  and mouse properties, sound setup, desktop theme and background, user
  interface properties, screen resolution, and other MATE parameters.
@@ -76,6 +76,12 @@ Architecture: any
 Depends: ${misc:Depends},
          mate-control-center (= ${binary:Version})
 Description: utilities to configure the MATE desktop (debugging symbols)
+ The MATE control center contains configuration applets for the MATE desktop,
+ allowing to set accessibility configuration, desktop fonts, keyboard
+ and mouse properties, sound setup, desktop theme and background, user
+ interface properties, screen resolution, and other MATE parameters.
+ .
  This package contains debugging symbols for mate-control-center.
- It is provided to help debugging problems. The debugging symbols are
- installed  in /usr/lib/debug and will automatically be used by gdb.
+ .
+ The debugging symbols are installed in /usr/lib/debug and will
+ automatically be used by gdb.
