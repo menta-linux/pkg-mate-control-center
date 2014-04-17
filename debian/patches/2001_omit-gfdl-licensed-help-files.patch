@@ -12,8 +12,8 @@ Author: Mike Gabriel <mike.gabriel@das-netzwerkteam.de>
  SUBDIRS += libslab
 --- a/configure.ac
 +++ b/configure.ac
-@@ -367,7 +367,6 @@
- capplets/windows/mate-window-properties.desktop.in
+@@ -365,7 +365,6 @@
+ capplets/network/mate-network-properties.desktop.in
  font-viewer/Makefile
  font-viewer/mate-font-viewer.desktop.in
 -help/Makefile
