@@ -1,0 +1,14 @@
+--- a/capplets/about-me/mate-about-me.1
++++ b/capplets/about-me/mate-about-me.1
+@@ -11,8 +11,8 @@
+ .PP 
+ MATE About Me is a control center applet to set user information.
+ .PP
+-It allows to change user password and set user avatar image (~/.face file). 
++It allows one to change user password and set user avatar image (~/.face file). 
+ 
+ .SH "AUTHOR" 
+ .PP 
+-This manual page was written by Stefano Karapetsas <stefano@karapetsas.com>.
+\ No newline at end of file
++This manual page was written by Stefano Karapetsas <stefano@karapetsas.com>.
