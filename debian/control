@@ -1,5 +1,5 @@
 Source: mate-control-center
-Section: mate
+Section: x11
 Priority: optional
 Maintainer: MATE Packaging Team <pkg-mate-team@lists.alioth.debian.org>
 Uploaders: Mike Gabriel <sunweaver@debian.org>,
@@ -48,7 +48,6 @@ Vcs-Git: git://anonscm.debian.org/pkg-mate/mate-control-center.git
 
 Package: mate-control-center
 Architecture: any
-Section: mate
 Depends: ${shlibs:Depends},
          ${misc:Depends},
          mate-settings-daemon,
