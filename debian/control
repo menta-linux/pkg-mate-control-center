@@ -52,6 +52,7 @@ Depends: ${shlibs:Depends},
          ${misc:Depends},
          libmate-window-settings1 (= ${binary:Version}),
          libmate-slab0 (= ${binary:Version}),
+         mate-control-center-common (= ${binary:Version}),
          mate-settings-daemon,
          mate-menus,
          mate-desktop,
@@ -70,7 +71,7 @@ Description: utilities to configure the MATE desktop
  accessed with the MATE panel or the Caja file manager.
 
 Package: mate-control-center-common
-Architecture: any
+Architecture: all
 Depends: ${misc:Depends},
 Description: utilities to configure the MATE desktop
  The MATE control center contains configuration applets for the MATE desktop,
