@@ -46,7 +46,6 @@ $(PKG)_$(VER)$(DTYPE).orig.tar.xz:
 	    || $(RM) -r $(PKG)-$(VER)
 	@echo "# Cleaning-up..."
 	cd $(PKG)-$(VER) \
-	    && find . -depth -type d -name 'windows' -exec $(RM) -r {} \; -printf 'removed %p\n' \
 	    && $(RM) -r -v \
 	        help/
 	$(RM) -v $(PKG)_$(VER).orig.tar.*
