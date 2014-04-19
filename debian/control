@@ -73,7 +73,7 @@ Description: utilities to configure the MATE desktop
 Package: mate-control-center-common
 Architecture: all
 Depends: ${misc:Depends},
-Description: utilities to configure the MATE desktop
+Description: utilities to configure the MATE desktop (common files)
  The MATE control center contains configuration applets for the MATE desktop,
  allowing to set accessibility configuration, desktop fonts, keyboard
  and mouse properties, sound setup, desktop theme and background, user
