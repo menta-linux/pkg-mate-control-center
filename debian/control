@@ -145,6 +145,8 @@ Depends: ${shlibs:Depends},
 Description: beautification app library
  This library provides functionality to create applications like MATE
  control center and the application-browser from gnome-main-menu.
+ .
+ This library has been forked from GNOMEv2 by the MATE project.
 
 Package: libmate-slab-dev
 Section: libdevel
