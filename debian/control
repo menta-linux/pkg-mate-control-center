@@ -60,8 +60,6 @@ Depends: ${shlibs:Depends},
          gsettings-desktop-schemas,
          libglib2.0-bin
 Suggests: gconf2
-Conflicts: libslab0,
-           libslab0a,
 Description: utilities to configure the MATE desktop
  The MATE control center contains configuration applets for the MATE desktop,
  allowing to set accessibility configuration, desktop fonts, keyboard
@@ -137,8 +135,10 @@ Section: libs
 Architecture: any
 Multi-Arch: same
 Breaks: gnome-main-menu (<< 0.9.14),
+        libslab0,
         libslab0a,
-Replaces: libslab0a,
+Replaces: libslab0,
+          libslab0a,
 Depends: ${shlibs:Depends},
          ${misc:Depends},
 Description: beautification app library
