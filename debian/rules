@@ -48,7 +48,8 @@ $(PKG)_$(VER)$(DTYPE).orig.tar.xz:
 	@echo "# Cleaning-up..."
 	cd $(PKG)-$(VER) \
 	    && $(RM) -r -v \
-	        help/
+	        help/ \
+	        m4/
 	$(RM) -v $(PKG)_$(VER).orig.tar.*
 	@echo "# Packing..."
 	find -L "$(PKG)-$(VER)" -xdev -type f -print | sort \
