@@ -1,5 +1,5 @@
-mate-control-center (1.8.1+dfsg1-1) unstable; urgency=low
+mate-control-center (1.8.1+dfsg1-1) UNRELEASED; urgency=low
 
   * Initial release. (Closes: #734663).
 
- -- Mike Gabriel <sunweaver@debian.org>  Fri, 02 May 2014 15:53:21 +0200
+ -- Vangelis Mouhtsis <vangelis@gnugr.org>  Wed, 16 Apr 2014 13:41:46 +0300
