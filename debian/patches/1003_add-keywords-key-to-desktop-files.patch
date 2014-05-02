@@ -1,5 +1,6 @@
 Description: Add keywords key to .desktop files
 Author: Mike Gabriel <mike.gabriel@das-netzwerkteam.de>
+Forwarded: https://github.com/mate-desktop/mate-control-center/issues/102
 --- a/capplets/about-me/mate-about-me.desktop.in.in
 +++ b/capplets/about-me/mate-about-me.desktop.in.in
 @@ -7,4 +7,5 @@

@@ -1,5 +1,6 @@
 Description: Rename libslab to libmate-slab
 Author: Mike Gabriel <mike.gabriel@das-netzwerkteam.de>
+Forwarded: https://github.com/mate-desktop/mate-control-center/issues/100
 Abstract:
  This is to avoid package name and version conflicts with
  libslab0 / libslab0a which existed in Debian until squeeze.

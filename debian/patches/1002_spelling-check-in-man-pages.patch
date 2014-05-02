@@ -1,5 +1,6 @@
 Description: Grammar fix for man page mate-about-me.1
 Author: Mike Gabriel <mike.gabriel@das-netzwerkteam.de>
+Forwarded: https://github.com/mate-desktop/mate-control-center/issues/101
 --- a/capplets/about-me/mate-about-me.1
 +++ b/capplets/about-me/mate-about-me.1
 @@ -11,8 +11,8 @@

@@ -1,5 +1,6 @@
 Description: Add main category to Categories key
 Author: Mike Gabriel <mike.gabriel@das-netzwerkteam.de>
+Forwarded: https://github.com/mate-desktop/mate-control-center/issues/103
 --- a/capplets/appearance/data/mate-theme-installer.desktop.in.in
 +++ b/capplets/appearance/data/mate-theme-installer.desktop.in.in
 @@ -7,7 +7,7 @@
