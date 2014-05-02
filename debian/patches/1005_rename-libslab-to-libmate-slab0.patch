@@ -113,3 +113,127 @@ Abstract:
  
  AM_CPPFLAGS =					\
  	-I$(top_srcdir)				\
+--- a/libslab/app-resizer.h
++++ b/libslab/app-resizer.h
+@@ -24,7 +24,7 @@
+ #include <glib.h>
+ #include <gtk/gtk.h>
+ 
+-#include <libslab/app-shell.h>
++#include "app-shell.h"
+ 
+ #ifdef __cplusplus
+ extern "C" {
+--- a/libslab/app-shell.h
++++ b/libslab/app-shell.h
+@@ -28,8 +28,8 @@
+ #include <matemenu-tree.h>
+ #include <libmate-desktop/mate-desktop-item.h>
+ 
+-#include <libslab/slab-section.h>
+-#include <libslab/tile.h>
++#include "slab-section.h"
++#include "tile.h"
+ 
+ #ifdef __cplusplus
+ extern "C" {
+--- a/libslab/application-tile.h
++++ b/libslab/application-tile.h
+@@ -21,7 +21,7 @@
+ #ifndef __APPLICATION_TILE_H__
+ #define __APPLICATION_TILE_H__
+ 
+-#include <libslab/nameplate-tile.h>
++#include "nameplate-tile.h"
+ 
+ #include <libmate-desktop/mate-desktop-item.h>
+ 
+--- a/libslab/directory-tile.h
++++ b/libslab/directory-tile.h
+@@ -23,7 +23,7 @@
+ 
+ #include <time.h>
+ 
+-#include <libslab/nameplate-tile.h>
++#include "nameplate-tile.h"
+ 
+ #ifdef __cplusplus
+ extern "C" {
+--- a/libslab/nameplate-tile.h
++++ b/libslab/nameplate-tile.h
+@@ -21,7 +21,7 @@
+ #ifndef __NAMEPLATE_TILE_H__
+ #define __NAMEPLATE_TILE_H__
+ 
+-#include <libslab/tile.h>
++#include "tile.h"
+ 
+ #include <gtk/gtk.h>
+ 
+--- a/libslab/shell-window.h
++++ b/libslab/shell-window.h
+@@ -25,7 +25,7 @@
+ #include <gtk/gtk.h>
+ #include <libmate-desktop/mate-desktop-item.h>
+ 
+-#include <libslab/app-shell.h>
++#include "app-shell.h"
+ 
+ #ifdef __cplusplus
+ extern "C" {
+--- a/libslab/slab.h
++++ b/libslab/slab.h
+@@ -22,24 +22,24 @@
+ #ifndef __SLAB_H__
+ #define __SLAB_H__
+ 
+-#include <libslab/app-resizer.h>
+-#include <libslab/app-shell.h>
+-#include <libslab/application-tile.h>
+-#include <libslab/bookmark-agent.h>
+-#include <libslab/directory-tile.h>
+-#include <libslab/document-tile.h>
+-#include <libslab/double-click-detector.h>
+-#include <libslab/mate-utils.h>
+-#include <libslab/libslab-utils.h>
+-#include <libslab/nameplate-tile.h>
+-#include <libslab/search-bar.h>
+-#include <libslab/search-context-picker.h>
+-#include <libslab/search-entry.h>
+-#include <libslab/shell-window.h>
+-#include <libslab/slab-mate-util.h>
+-#include <libslab/slab-section.h>
+-#include <libslab/system-tile.h>
+-#include <libslab/tile.h>
++#include "app-resizer.h"
++#include "app-shell.h"
++#include "application-tile.h"
++#include "bookmark-agent.h"
++#include "directory-tile.h"
++#include "document-tile.h"
++#include "double-click-detector.h"
++#include "mate-utils.h"
++#include "libslab-utils.h"
++#include "nameplate-tile.h"
++#include "search-bar.h"
++#include "search-context-picker.h"
++#include "search-entry.h"
++#include "shell-window.h"
++#include "slab-mate-util.h"
++#include "slab-section.h"
++#include "system-tile.h"
++#include "tile.h"
+ 
+ #endif /* __SLAB_H__ */
+ 
+--- a/libslab/system-tile.h
++++ b/libslab/system-tile.h
+@@ -21,7 +21,7 @@
+ #ifndef __SYSTEM_TILE_H__
+ #define __SYSTEM_TILE_H__
+ 
+-#include <libslab/nameplate-tile.h>
++#include "nameplate-tile.h"
+ 
+ #include <libmate-desktop/mate-desktop-item.h>
+ 
