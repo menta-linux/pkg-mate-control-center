@@ -1,3 +1,12 @@
+mate-control-center (1.8.1+dfsg1-2) unstable; urgency=low
+
+  * debian/patches:
+    + Improve/update 1005_rename-libslab-to-libmate-slab0.patch. Allow
+      third-party software (gnome-main-menu) to be built against the renamed
+      libmate-slab library.
+
+ -- Mike Gabriel <sunweaver@debian.org>  Fri, 02 May 2014 23:20:06 +0200
+
 mate-control-center (1.8.1+dfsg1-1) unstable; urgency=low
 
   * Initial release. (Closes: #734663).
