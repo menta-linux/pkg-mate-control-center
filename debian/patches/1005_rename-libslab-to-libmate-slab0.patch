@@ -1,0 +1,114 @@
+Description: Rename libslab to libmate-slab
+Author: Mike Gabriel <mike.gabriel@das-netzwerkteam.de>
+Abstract:
+ This is to avoid package name and version conflicts with
+ libslab0 / libslab0a which existed in Debian until squeeze.
+ .
+ MATE components (currently only gnome-main-menu) depending
+ on libmate-slab0 have to be patch accordingly. 
+--- a/libslab/Makefile.am
++++ b/libslab/Makefile.am
+@@ -1,5 +1,5 @@
+ pkgconfigdir = $(libdir)/pkgconfig
+-pkgconfig_DATA = libslab.pc
++pkgconfig_DATA = mate-slab.pc
+ 
+ AM_CPPFLAGS =					\
+ 	-I$(top_srcdir)				\
+@@ -28,9 +28,9 @@
+ 	system-tile.h				\
+ 	tile.h
+ 
+-lib_LTLIBRARIES = libslab.la
++lib_LTLIBRARIES = libmate-slab.la
+ 
+-libslab_la_SOURCES =				\
++libmate_slab_la_SOURCES =			\
+ 	$(MARSHAL_GENERATED)			\
+ 	app-resizer.c				\
+ 	app-shell.c				\
+@@ -55,9 +55,9 @@
+ 	tile-action.c				\
+ 	tile.c
+ 
+-libslab_includedir = $(includedir)/libslab
+-libslab_include_HEADERS = $(HEADER_FILES)
+-libslab_la_LIBADD = $(LIBSLAB_LIBS)
++libmate_slab_includedir = $(includedir)/libmate-slab
++libmate_slab_include_HEADERS = $(HEADER_FILES)
++libmate_slab_la_LIBADD = $(LIBSLAB_LIBS)
+ 
+ search-entry-watermark.h: search-entry-watermark.svg
+ 	echo '#define SEARCH_ENTRY_WATERMARK_SVG "\' > $@; \
+--- a/configure.ac
++++ b/configure.ac
+@@ -182,20 +182,20 @@
+ PKG_CHECK_MODULES(GLIB, glib-2.0 $GMODULE_ADD)
+ 
+ dnl
+-dnl Check dependencies of libslab
++dnl Check dependencies of libmate-slab
+ dnl
+ PKG_CHECK_MODULES(LIBSLAB, [
+ 			   gio-2.0 mate-desktop-2.0 librsvg-2.0 libmate-menu pango
+ 			   ],
+-			   have_libslab=yes,
+-			   have_libslab=no)
++			   have_libmateslab=yes,
++			   have_libmateslab=no)
+ WARN_CFLAGS="-Wall"
+ 
+-AC_SUBST(LIBSLAB_CFLAGS)
+-AC_SUBST(LIBSLAB_LIBS)
++AC_SUBST(LIBMATESLAB_CFLAGS)
++AC_SUBST(LIBMATESLAB_LIBS)
+ AC_SUBST(WARN_CFLAGS)
+ 
+-AM_CONDITIONAL(HAVE_LIBSLAB, [test $have_libslab = yes])
++AM_CONDITIONAL(HAVE_LIBMATESLAB, [test $have_libmateslab = yes])
+ 
+ dnl
+ dnl Check for Xft version 2; we build in extra functionality to the font capplet
+@@ -371,7 +371,7 @@
+ libwindow-settings/Makefile
+ libwindow-settings/mate-window-settings-2.0.pc
+ po/Makefile.in
+-libslab/libslab.pc
++libslab/mate-slab.pc
+ libslab/Makefile
+ shell/Makefile
+ shell/matecc.desktop.in
+@@ -390,7 +390,7 @@
+ 
+         GTK+ API version:      ${GTK_API_VERSION}
+         Appindicator:          ${enable_appindicator}
+-        Libslab:               ${have_libslab}
++        Libmate-slab:          ${have_libmateslab}
+         XCursor support:       ${have_xcursor}
+         XInput support:        ${have_xinput}
+         Ubuntu hacks:          ${enable_ubuntu}
+--- a/Makefile.am
++++ b/Makefile.am
+@@ -1,11 +1,11 @@
+ SUBDIRS = po libwindow-settings capplets font-viewer help
+ DIST_SUBDIRS = po libwindow-settings capplets font-viewer help libslab shell typing-break
+ 
+-if HAVE_LIBSLAB
++if HAVE_LIBMATESLAB
+ SUBDIRS += libslab
+ endif
+ 
+-if HAVE_LIBSLAB
++if HAVE_LIBMATESLAB
+ SUBDIRS += shell
+ endif
+ 
+--- a/shell/Makefile.am
++++ b/shell/Makefile.am
+@@ -1,5 +1,5 @@
+ REAL_LIBSLAB_CFLAGS = -I$(top_srcdir)/libslab
+-REAL_LIBSLAB_LIBS = $(top_builddir)/libslab/libslab.la
++REAL_LIBSLAB_LIBS = $(top_builddir)/libslab/libmate-slab.la
+ 
+ AM_CPPFLAGS =					\
+ 	-I$(top_srcdir)				\

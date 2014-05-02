@@ -1,4 +1,4 @@
-libslab.so.0 libmate-slab0 #MINVER#
+libmate-slab.so.0 libmate-slab0 #MINVER#
  app_resizer_get_type@Base 1.8.1
  app_resizer_layout_table_default@Base 1.8.1
  app_resizer_new@Base 1.8.1
