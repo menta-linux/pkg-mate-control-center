@@ -1,3 +1,16 @@
+mate-control-center (1.8.1+dfsg1-3) unstable; urgency=low
+
+  [ Vangelis Mouhtsis ]
+  * debian/rules:
+    + Replace on dh_install --list-missing -> --fail-missing.
+
+  [ Mike Gabriel ]
+  * debian/control:
+    + Add Breaks: field to mate-control-center-common. The package breaks
+      mate-control-center (<< 1.8.1).
+
+ -- Mike Gabriel <sunweaver@debian.org>  Thu, 08 May 2014 21:14:37 +0200
+
 mate-control-center (1.8.1+dfsg1-2) unstable; urgency=low
 
   * debian/patches:
