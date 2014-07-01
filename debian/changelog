@@ -1,3 +1,10 @@
+mate-control-center (1.8.1+dfsg1-4) unstable; urgency=medium
+
+  * debian/control:
+    + Add D (mate-control-center): marco-common. (Closes: #751944).
+
+ -- Mike Gabriel <sunweaver@debian.org>  Tue, 01 Jul 2014 19:51:55 +0200
+
 mate-control-center (1.8.1+dfsg1-3) unstable; urgency=low
 
   [ Vangelis Mouhtsis ]
