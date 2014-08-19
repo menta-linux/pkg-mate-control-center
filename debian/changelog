@@ -1,4 +1,4 @@
-mate-control-center (1.8.2+dfsg1-1.1) UNRELEASED; urgency=medium
+mate-control-center (1.8.2+dfsg1-1) unstable; urgency=medium
 
   * New upstream release.
   * debian/patches:
@@ -6,8 +6,10 @@ mate-control-center (1.8.2+dfsg1-1.1) UNRELEASED; urgency=medium
     + Drop 1003_add-keywords-key-to-desktop-files.patch. Applied upstream.
     + Drop 1004_add-main-category-to-categories-key-in-desktop-file.patch.
       Applied upstream.
+  * debian/control:
+    + Add D (mate-control-center): caja-common. (Closes: #756146).
 
- -- Mike Gabriel <mike.gabriel@das-netzwerkteam.de>  Mon, 04 Aug 2014 17:16:08 +0200
+ -- Mike Gabriel <sunweaver@debian.org>  Mon, 04 Aug 2014 17:25:24 +0200
 
 mate-control-center (1.8.1+dfsg1-4) unstable; urgency=medium
 
