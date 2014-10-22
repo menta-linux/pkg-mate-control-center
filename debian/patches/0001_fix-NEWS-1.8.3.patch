@@ -1,0 +1,27 @@
+From f39852e19f77e7b852f7dc425d0f37479cfd28c8 Mon Sep 17 00:00:00 2001
+From: infirit <infirit@gmail.com>
+Date: Tue, 7 Oct 2014 21:04:57 +0200
+Subject: [PATCH] Fix NEWS
+
+---
+ NEWS | 6 ++++--
+ 1 file changed, 4 insertions(+), 2 deletions(-)
+
+diff --git a/NEWS b/NEWS
+index 27feaf4..33bfe3e 100644
+--- a/NEWS
++++ b/NEWS
+@@ -1,9 +1,11 @@
++1.8.3
++  * Update Marco WM name
++  * Fix segfault with custom keybindings
++
+ 1.8.2
+   * Fix typo in togglekeys-enable (a11y).
+   * Allow metacity-2 themes in appearance capplet.
+   * Several man page and desktop file fixes.
+-  * Update Marco WM name
+-  * Fix segfault with custom keybindings
+ 
+ 1.8.1
+   * default-applications: Add support for accessibility applications
