@@ -1,3 +1,25 @@
+mate-control-center (1.8.3+dfsg1-1) unstable; urgency=medium
+
+  [ Vangelis Mouhtsis ]
+  * debian/control:
+    + Bump Standards: to 3.9.6. No changes needed.
+
+  [ Mike Gabriel ]
+  * New upstream release. (Closes: #765994).
+  * debian/rules:
+    + Use NEWS file as upstream ChangeLog file.
+  * debian/copyright:
+    + Add information on po/*.po files.
+    + Discover two .svg files with license GPL-2.0.
+    + Really mention all upstream files.
+  * debian/patches:
+    + Add 0001_fix-NEWS-1.8.3.patch. Upstream commit, fixes faulty NEW file
+      for release 1.8.3.
+    + Add 0002_initialize-mouse-focus-checkbox.patch. Initialize the mouse
+      focus state appropriately.
+
+ -- Mike Gabriel <sunweaver@debian.org>  Wed, 22 Oct 2014 22:52:11 +0200
+
 mate-control-center (1.8.2+dfsg1-1) unstable; urgency=medium
 
   * New upstream release.
