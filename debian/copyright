@@ -348,7 +348,6 @@ Files: capplets/about-me/icons/Makefile.am
        capplets/default-applications/*.in
        capplets/default-applications/*.ui
        capplets/display/icons/*x*/*.png
-       capplets/display/icons/scalable/*.svg
        capplets/display/Makefile.am
        capplets/display/TODO
        capplets/display/*.ui
@@ -368,7 +367,6 @@ Files: capplets/about-me/icons/Makefile.am
        capplets/mouse/*.png
        capplets/mouse/*.ui
        capplets/network/icons/*x*/*.png
-       capplets/network/icons/scalable/*.svg
        capplets/network/Makefile.am
        capplets/network/*.in
        capplets/network/*.ui
