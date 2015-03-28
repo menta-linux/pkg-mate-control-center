@@ -1,3 +1,11 @@
+mate-control-center (1.8.3+dfsg1-2) unstable; urgency=medium
+
+  * debian/patches:
+    + Add 0003_fix-i18n-category-names.patch. Fix i18n names of Settings /
+      System sub-categories in MATE control center window. (Closes: #780580).
+
+ -- Mike Gabriel <sunweaver@debian.org>  Mon, 23 Mar 2015 17:28:47 +0100
+
 mate-control-center (1.8.3+dfsg1-1) unstable; urgency=medium
 
   [ Vangelis Mouhtsis ]
