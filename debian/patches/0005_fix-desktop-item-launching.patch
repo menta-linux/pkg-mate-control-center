@@ -1,0 +1,23 @@
+From e1ba5271d8ef3b80e81e8d3f4469fe76d46d6c68 Mon Sep 17 00:00:00 2001
+From: Monsta <monsta@inbox.ru>
+Date: Wed, 25 Mar 2015 15:25:08 +0300
+Subject: [PATCH] libslab: do not reap child when launching desktop items
+
+should be used after https://github.com/mate-desktop/mate-desktop/pull/167 is applied
+---
+ libslab/slab-mate-util.c | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/libslab/slab-mate-util.c b/libslab/slab-mate-util.c
+index a4527dc..2acf9d0 100644
+--- a/libslab/slab-mate-util.c
++++ b/libslab/slab-mate-util.c
+@@ -127,7 +127,7 @@ open_desktop_item_exec (MateDesktopItem * desktop_item)
+ 	if (!desktop_item)
+ 		return FALSE;
+ 
+-	mate_desktop_item_launch (desktop_item, NULL, MATE_DESKTOP_ITEM_LAUNCH_ONLY_ONE, &error);
++	mate_desktop_item_launch (desktop_item, NULL, MATE_DESKTOP_ITEM_LAUNCH_ONLY_ONE | MATE_DESKTOP_ITEM_LAUNCH_DO_NOT_REAP_CHILD, &error);
+ 
+ 	if (error)
+ 	{
