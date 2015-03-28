@@ -1,3 +1,16 @@
+mate-control-center (1.8.3+dfsg1-3) UNRELEASED; urgency=medium
+
+  * debian/patches:
+    + Add 0004_fix-set-preferred-apps-in-some-locales.patch. Fix perferred
+      applications launcher for Russion and Ukranian locale. (Closes: #781303).
+    + Add 0005_fix-desktop-item-launching.patch. In libslab: do not reap child
+      when launching desktop items. (Closes: #781247).
+  * debian/control:
+    + Switch to versioned D (mate-control-center): mate-desktop (>= 1.8.1+dfsg1-3).
+      (required by new patch 0005_fix-desktop-item-launching.patch).
+
+ -- Mike Gabriel <sunweaver@debian.org>  Sat, 28 Mar 2015 14:27:02 +0100
+
 mate-control-center (1.8.3+dfsg1-2) unstable; urgency=medium
 
   * debian/patches:
