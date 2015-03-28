@@ -1,0 +1,26 @@
+Index: mate-control-center-1.8.3+dfsg1/po/ru.po
+===================================================================
+--- mate-control-center-1.8.3+dfsg1.orig/po/ru.po
++++ mate-control-center-1.8.3+dfsg1/po/ru.po
+@@ -31,7 +31,7 @@ msgstr ""
+ msgid ""
+ "[ 'Change Theme;mate-appearance-properties.desktop', 'Set Preferred "
+ "Applications;mate-default-applications-properties.desktop' ]"
+-msgstr "[ 'Изменить тему;mate-appearance-properties.desktop', 'Выставить предпочтительные приложения;mate-default-applications.desktop']"
++msgstr "[ 'Изменить тему;mate-appearance-properties.desktop', 'Выставить предпочтительные приложения;mate-default-applications-properties.desktop']"
+ 
+ #: ../org.mate.control-center.gschema.xml.in.in.h:2
+ msgid "Task names and associated .desktop files"
+Index: mate-control-center-1.8.3+dfsg1/po/uk.po
+===================================================================
+--- mate-control-center-1.8.3+dfsg1.orig/po/uk.po
++++ mate-control-center-1.8.3+dfsg1/po/uk.po
+@@ -28,7 +28,7 @@ msgstr ""
+ msgid ""
+ "[ 'Change Theme;mate-appearance-properties.desktop', 'Set Preferred "
+ "Applications;mate-default-applications-properties.desktop' ]"
+-msgstr "[ 'Змінити тему;mate-appearance-properties.desktop', 'Виставити бажані додатки;mate-default-applications.desktop']"
++msgstr "[ 'Змінити тему;mate-appearance-properties.desktop', 'Виставити бажані додатки;mate-default-applications-properties.desktop']"
+ 
+ #: ../org.mate.control-center.gschema.xml.in.in.h:2
+ msgid "Task names and associated .desktop files"
