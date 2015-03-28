@@ -5,3 +5,4 @@
 0005_fix-desktop-item-launching.patch
 1005_rename-libslab-to-libmate-slab0.patch
 2001_omit-gfdl-licensed-help-files.patch
+2002_fix-common-tasks-section-for-German-locale.patch

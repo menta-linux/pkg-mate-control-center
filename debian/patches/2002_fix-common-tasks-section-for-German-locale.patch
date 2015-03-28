@@ -1,0 +1,14 @@
+Description: Quotation mark fix in German translation file.
+Author: Wolfgang Ulbrich <chat-to-me@raveit.de>
+
+--- a/po/de.po
++++ b/po/de.po
+@@ -40,7 +40,7 @@
+ msgid ""
+ "[ 'Change Theme;mate-appearance-properties.desktop', 'Set Preferred "
+ "Applications;mate-default-applications-properties.desktop' ]"
+-msgstr "[ »Thema ändern;mate-appearance-properties.desktop«, »Bevorzugte Anwendungen einstellen;mate-default-applications-properties.desktop« ]"
++msgstr "[ 'Thema ändern;mate-appearance-properties.desktop', 'Bevorzugte Anwendungen einstellen;mate-default-applications-properties.desktop' ]"
+ 
+ #: ../org.mate.control-center.gschema.xml.in.in.h:2
+ msgid "Task names and associated .desktop files"
