@@ -1,8 +1,1 @@
-0001_fix-NEWS-1.8.3.patch
-0002_initialize-mouse-focus-checkbox.patch
-0003_fix-i18n-category-names.patch
-0004_fix-set-preferred-apps-in-some-locales.patch
-0005_fix-desktop-item-launching.patch
-1005_rename-libslab-to-libmate-slab0.patch
 2001_omit-gfdl-licensed-help-files.patch
-2002_fix-common-tasks-section-for-German-locale.patch
