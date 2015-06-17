@@ -1,5 +1,7 @@
 #!/usr/bin/make -f
 
+NULL  =
+
 PKD   = $(word 1,$(abspath $(dir $(MAKEFILE_LIST))))
 PKG   = $(word 2,$(shell dpkg-parsechangelog -l$(PKD)/changelog | grep ^Source))
 UVER  = $(shell dpkg-parsechangelog -l$(PKD)/changelog | perl -ne 'print $$1 if m{^Version:\s+(?:\d+:)?(\d.*)(?:\-\d+.*)};')
@@ -53,7 +55,7 @@ $(PKG)_$(VER)$(DTYPE).orig.tar.xz:
 	cd $(PKG)-$(VER) \
 	    && $(RM) -r -v \
 	        help/ \
-	        m4/
+	        $(NULL)
 	$(RM) -v $(PKG)_$(VER).orig.tar.*
 	@echo "# Packing..."
 	find -L "$(PKG)-$(VER)" -xdev -type f -print | sort \
