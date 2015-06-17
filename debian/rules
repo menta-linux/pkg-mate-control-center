@@ -21,7 +21,6 @@ override_dh_install:
 	dh_install --fail-missing
 
 override_dh_auto_configure:
-	cp debian/mate-slab/mate-slab.pc.in libslab/mate-slab.pc.in
 	# upstream tarball is without configure. autogen.sh will create it
 	NOCONFIGURE=1 ./autogen.sh
 	dh_auto_configure $(DHFLAGS) -- \
