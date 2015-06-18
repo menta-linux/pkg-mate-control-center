@@ -1,8 +1,38 @@
 mate-control-center (1.10.0+dfsg1-1~exp1) UNRELEASED; urgency=medium
 
   * New upstream release.
+  * debian/control:
+    + Versioned B-D: mate-common (>= 1.10).
+    + Versioned B-D: libmate-desktop-dev (>= 1.9.4).
+    + Versioned B-D: libmarco-dev (>= 1.9.1).
+  * debian/{control,copyright,*.install}:
+    + Process with wrap-and-sort.
+  * debian/{rules,mate-control-center-common.install}:
+    + Drop /usr/share/MateConf from bin:package.
+  * debian/rules:
+    + Adapt repack algorithm, no m4/ folder in upstream sources anymore.
+    Create orig tarball in ../ rather than in .
+  * man pages:
+    + Now shipped in upstream sources. Remove Debian-provided man pages from
+      debian/man/.
+    + Remove artifact (debian/patches/man/mate-control-center.1)
+  * debian/patches: Adapt Debian patchset to this release.
+     + Drop 0001_fix-NEWS-1.8.3.patch. Requires more work upstream.
+     + Drop 0002_initialize-mouse-focus-checkbox.patch. Applied upstream.
+     + Drop 0003_fix-i18n-category-names.patch. Applied upstream.
+     + Drop 0004_fix-set-preferred-apps-in-some-locales.patch. Applied upstream.
+     + Drop 0005_fix-desktop-item-launching.patch. Applied upstream.
+     + Drop 1005_rename-libslab-to-libmate-slab0.patch. Applied upstream.
+     + Update 2001_omit-gfdl-licensed-help-files.patch. Rebased against this
+       upstream release.
+     + Drop 2002_fix-common-tasks-section-for-German-locale.patch. Applied
+       upstream.
+  * debian/copyright:
+    + Add copyright information for newly shipped man pages.
+  * debian/mate-slab/mate-slab.pc.in:
+    + Drop from package, provided in upstream sources.
 
- -- Mike Gabriel <sunweaver@debian.org>  Wed, 17 Jun 2015 16:31:21 +0200
+ -- Mike Gabriel <sunweaver@debian.org>  Thu, 18 Jun 2015 09:20:50 +0200
 
 mate-control-center (1.8.3+dfsg1-2) unstable; urgency=medium
 
