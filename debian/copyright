@@ -307,7 +307,6 @@ Files: capplets/about-me/icons/Makefile.am
        capplets/about-me/mate-about-me-password.h
        capplets/about-me/*.list
        capplets/about-me/*.ui
-       capplets/about-me/*.1
        capplets/about-me/*.in
        capplets/about-me/AUTHORS
        capplets/about-me/icons/left-index-finger.png
@@ -344,7 +343,6 @@ Files: capplets/about-me/icons/Makefile.am
        capplets/appearance/data/*.png
        capplets/appearance/data/*.pcf
        capplets/appearance/data/*.in
-       capplets/appearance/data/*.1
        capplets/appearance/data/*.ui
        capplets/appearance/Makefile.am
        capplets/common/Makefile.am
@@ -356,7 +354,6 @@ Files: capplets/about-me/icons/Makefile.am
        capplets/common/wm-common.c
        capplets/common/wm-common.h
        capplets/default-applications/Makefile.am
-       capplets/default-applications/*.1
        capplets/default-applications/*.in
        capplets/default-applications/*.ui
        capplets/display/icons/*x*/*.png
