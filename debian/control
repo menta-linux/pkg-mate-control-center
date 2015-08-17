@@ -85,7 +85,7 @@ Description: utilities to configure the MATE desktop (common files)
  and mouse properties, sound setup, desktop theme and background, user
  interface properties, screen resolution, and other MATE parameters.
  .
- This package contains the architecture independent files of MATE
+ This package contains the architecture-independent files of MATE
  control center.
 
 Package: libmate-window-settings1
