@@ -292,7 +292,6 @@ Copyright: 2003-2006, Miloslav Trmac <mitr@volny.cz>.
            2009, The GNOME Foundation.
            Croatiann team
            2001, Roy-Magne Mo <rmo@sunnmore.net>
-           1999-2014, THE PACKAGE'S COPYRIGHT HOLDER
 License: GPL-2+
 Comment:
  Assuming license as found in COPYING file.
@@ -303,29 +302,28 @@ Copyright: *No copyright*
 License: GPL-2
 
 Files: help/*
-Copyright:
- Alexey Dunaev <keir.ru@gmail.com>
- Andika Triwidada <andika@gmail.com>
- A S Alam <aalam@users.sf.net>
- Bruno Queiros <brunomiguelqueiros@sapo.pt>
- Clytie Siddall <clytie@riverland.net.au>
- Daniel Nylander <po@danielnylander.se>
- David Lodge <dave@cirt.net>
- Joan Duran <jodufi@gmail.com>
- Jonathan Ernst <jonathan@ernstfamily.ch>
- Jorge González <jorgegonz@svn.gnome.org>
- <knight2000@gmail.com>
- Luca Ferretti <elle.uca@libero.it>
- Lucas Lommer <llommer@svn.gnome.org>
- Mario Blättermann <mario.blaettermann@t-online.de>
- Maxim V. Dziumanenko <dziumanenko@gmail.com>
- Robert Millan <rmh@aybabtu.com>
- Satoru SATOH <ss@mate.gr.jp>
- Tomasz Dominikowski <dominikowski@gmail.com>
- Wendell Silva <thluxx@gmail.com>
- Yannig Marchegay (Kokoyaya) <yannig@marchegay.org>
- Zhang Miao <mymzhang@gmail.com>
- Μάριος Ζηντίλης <m.zindilis@dmajor.org>
+Copyright: Alexey Dunaev <keir.ru@gmail.com>
+           Andika Triwidada <andika@gmail.com>
+           A S Alam <aalam@users.sf.net>
+           Bruno Queiros <brunomiguelqueiros@sapo.pt>
+           Clytie Siddall <clytie@riverland.net.au>
+           Daniel Nylander <po@danielnylander.se>
+           David Lodge <dave@cirt.net>
+           Joan Duran <jodufi@gmail.com>
+           Jonathan Ernst <jonathan@ernstfamily.ch>
+           Jorge González <jorgegonz@svn.gnome.org>
+           <knight2000@gmail.com>
+           Luca Ferretti <elle.uca@libero.it>
+           Lucas Lommer <llommer@svn.gnome.org>
+           Mario Blättermann <mario.blaettermann@t-online.de>
+           Maxim V. Dziumanenko <dziumanenko@gmail.com>
+           Robert Millan <rmh@aybabtu.com>
+           Satoru SATOH <ss@mate.gr.jp>
+           Tomasz Dominikowski <dominikowski@gmail.com>
+           Wendell Silva <thluxx@gmail.com>
+           Yannig Marchegay (Kokoyaya) <yannig@marchegay.org>
+           Zhang Miao <mymzhang@gmail.com>
+           Μάριος Ζηντίλης <m.zindilis@dmajor.org>
 License: GFDL-1.1+
 
 Files: capplets/about-me/icons/Makefile.am
