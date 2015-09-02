@@ -1,24 +1,33 @@
-mate-control-center (1.10.1+gfdl1-1) UNRELEASED; urgency=medium
+mate-control-center (1.10.1+gfdl1-1) unstable; urgency=medium
 
+  [ Martin Wimpress ]
   * debian/patches:
     + Drop 2001_omit-gfdl-help-licensed-help-files.patch, mate-control-panel
-    help is dfsg compliant.
+      help is DFSG compliant.
   * debian/control:
     + Process with wrap-and-sort.
     + Update build dependency versions.
-    + Correct build dependency for mate-settings-daemon-dev.
+    + Correct build dependency for mate-settings-daemon-dev. (Closes: #796424).
   * debian/mate-control-center-common.install:
-    + Add usr/share/{help,man,mate-control-center,mime,polkit-1,thumbnailers}
+    + Add /usr/share/{help,man,mate-co50ntrol-center,mime,polkit-1,thumbnailers}
   * debian/mate-control-center.install:
     + Remove /usr/share/{man,mate-control-center,mime,polkit-1,thumbnailers}
   * debian/rules:
-    + Remove dfsg suffix.
+    + Remove +dfsg1 suffix.
   * debian/watch:
-    + Remove dfsg suffix.
+    + Remove +dfsg1 suffix, temporarily use +gfdl1 suffix until next upstream
+      release.
   * debian/copyright:
-    + Add copyright attirbution for help authors and translators.
+    + Add copyright attribution for help authors and translators.
 
- -- Martin Wimpress <martin@flexion.org>  Wed, 29 Jul 2015 23:42:13 +0100
+  [ Mike Gabriel ]
+  * Upload to unstable.
+    - Be compliant with latest mate-desktop 1.10 API. (Closes: #794676).
+  * debian/control:
+    + Bin:packages can't have Breaks:/Replaces: relationships with themselves
+      (mate-control-center-common).
+
+ -- Mike Gabriel <sunweaver@debian.org>  Tue, 01 Sep 2015 21:51:19 +0200
 
 mate-control-center (1.10.1+dfsg1-1~exp1) experimental; urgency=medium
 
