@@ -1,3 +1,9 @@
+mate-control-center (1.10.2-1) UNRELEASED; urgency=medium
+
+  * New upstream release.
+
+ -- Martin Wimpress <code@flexion.org>  Mon, 05 Oct 2015 13:33:17 +0100
+
 mate-control-center (1.10.1+gfdl1-1) unstable; urgency=medium
 
   [ Martin Wimpress ]
