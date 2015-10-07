@@ -1,8 +1,11 @@
-mate-control-center (1.10.2-1) UNRELEASED; urgency=medium
+mate-control-center (1.10.2-1) unstable; urgency=medium
 
+  [ Martin Wimpress ]
   * New upstream release.
+  * debian/watch:
+    + Drop +gfdl1 suffix.
 
- -- Martin Wimpress <code@flexion.org>  Mon, 05 Oct 2015 13:33:17 +0100
+ -- Mike Gabriel <sunweaver@debian.org>  Wed, 07 Oct 2015 04:30:14 +0200
 
 mate-control-center (1.10.1+gfdl1-1) unstable; urgency=medium
 
