@@ -1,8 +1,22 @@
-mate-control-center (1.12.1-1) UNRELEASED; urgency=medium
+mate-control-center (1.12.1-1) unstable; urgency=medium
 
+  [ Martin Wimpress ]
   * New upstream release.
+    - Add support for setting the primary monitor. (Closes: #794767).
+  * debian/control:
+    + Add B (mate-control-center): ubuntu-mate-default-settings (<< 16.04).
+    + Drop obsolete B-D: libxft-dev.
+    + Versioned B-D: mate-common (>= 1.12), libmarco-dev (>= 1.12),
+      libmate-desktop-dev (>= 1.12) and mate-settings-daemon-dev (>= 1.12).
+  * debian/copyright:
+    + Update copyright attributions.
 
- -- Martin Wimpress <code@flexion.org>  Mon, 09 Nov 2015 20:06:17 +0000
+  [ Mike Gabriel ]
+  * debian/control:
+    + Fix various B/R relations to previous versions of mate-control-center
+      bin:packages. Dropping all faulty R relations. (Closes: #797834).
+
+ -- Mike Gabriel <sunweaver@debian.org>  Fri, 01 Jan 2016 15:10:54 +0100
 
 mate-control-center (1.10.2-1) unstable; urgency=medium
 
