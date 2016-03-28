@@ -1,3 +1,20 @@
+mate-control-center (1.12.1-2) unstable; urgency=medium
+
+  [ Vangelis Mouhtsis ]
+  * debian/control:
+    + Versioned B-D on dpkg-dev (>= 1.16.1.1).
+    + Use encrypted URLs for Vcs-*: field.
+  * debian/rules:
+    + Enable all hardening flags.
+
+  [ Martin Wimpress ]
+  * debian/patches:
+    + 0000_make_all_three_window_focus_modes_selectable.patch. (LP: #1382992).
+  * debian/control:
+    + Bump Standards: to 3.9.7. No changes needed.
+
+ -- Mike Gabriel <sunweaver@debian.org>  Mon, 28 Mar 2016 17:41:06 +0200
+
 mate-control-center (1.12.1-1) unstable; urgency=medium
 
   [ Martin Wimpress ]
