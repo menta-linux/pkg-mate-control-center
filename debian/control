@@ -8,9 +8,9 @@ Uploaders: Mike Gabriel <sunweaver@debian.org>,
            Vangelis Mouhtsis <vangelis@gnugr.org>,
 Build-Depends: autotools-dev,
                debhelper (>= 9),
-               dpkg-dev (>= 1.16.1.1),
                desktop-file-utils,
                docbook-to-man,
+               dpkg-dev (>= 1.16.1.1),
                intltool,
                libcanberra-gtk3-dev,
                libdbus-1-dev,
@@ -21,8 +21,8 @@ Build-Depends: autotools-dev,
                libgtop2-dev,
                libmarco-dev (>= 1.14),
                libmate-desktop-dev (>= 1.14),
-               libmatekbd-dev (>= 1.14),
                libmate-menu-dev (>= 1.14),
+               libmatekbd-dev (>= 1.14),
                libpango1.0-dev,
                librsvg2-dev,
                libstartup-notification0-dev,
@@ -63,7 +63,7 @@ Depends: caja-common (>= 1.8.0),
          ${misc:Depends},
          ${shlibs:Depends},
 Suggests: gconf2,
-Breaks: ubuntu-mate-default-settings (<< 16.04)
+Breaks: ubuntu-mate-default-settings (<< 16.04),
 Description: utilities to configure the MATE desktop
  The MATE control center contains configuration applets for the MATE desktop,
  allowing to set accessibility configuration, desktop fonts, keyboard
@@ -76,7 +76,7 @@ Description: utilities to configure the MATE desktop
 Package: mate-control-center-common
 Architecture: all
 Depends: ${misc:Depends},
-Breaks: mate-control-center (<< 1.11.0)
+Breaks: mate-control-center (<< 1.11.0),
 Description: utilities to configure the MATE desktop (common files)
  The MATE control center contains configuration applets for the MATE desktop,
  allowing to set accessibility configuration, desktop fonts, keyboard
@@ -92,7 +92,7 @@ Architecture: any
 Multi-Arch: same
 Depends: ${misc:Depends},
          ${shlibs:Depends},
-Breaks: mate-control-center (<< 1.9.0)
+Breaks: mate-control-center (<< 1.9.0),
 Description: utilities to configure the MATE desktop (window settings library)
  The MATE control center contains configuration applets for the MATE desktop,
  allowing to set accessibility configuration, desktop fonts, keyboard
