@@ -41,7 +41,7 @@ Build-Depends: autotools-dev,
                shared-mime-info,
                xsltproc,
                yelp-tools,
-Standards-Version: 3.9.7
+Standards-Version: 3.9.8
 Homepage: http://www.mate-desktop.org/
 Vcs-Browser: https://anonscm.debian.org/git/pkg-mate/mate-control-center.git
 Vcs-Git: https://anonscm.debian.org/git/pkg-mate/mate-control-center.git
