@@ -1,8 +1,14 @@
-mate-control-center (1.14.1-1) UNRELEASED; urgency=medium
+mate-control-center (1.14.1-1) unstable; urgency=medium
 
-  * New upstream release. 
+  [ Martin Wimpress ]
+  * New upstream release.
 
- -- Martin Wimpress <code@flexion.org>  Wed, 17 Aug 2016 14:38:33 +0100
+  [ Vangelis Mouhtsis ]
+  * debian/{control,rules}:
+    + dbgsym: Don't build dbg:packages anymore.
+      See https://wiki.debian.org/AutomaticDebugPackages.
+
+ -- Mike Gabriel <sunweaver@debian.org>  Mon, 22 Aug 2016 11:37:10 +0200
 
 mate-control-center (1.14.0-1) unstable; urgency=medium
 
