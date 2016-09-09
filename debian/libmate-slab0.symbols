@@ -34,7 +34,6 @@ libmate-slab.so.0 libmate-slab0 #MINVER#
  double_click_detector_update_click_time@Base 1.8.1
  free_list_of_strings@Base 1.8.1
  generate_categories@Base 1.8.1
- get_main_menu_section_header@Base 1.8.1
  get_package_name_from_desktop_item@Base 1.8.1
  handle_g_error@Base 1.8.1
  hide_shell@Base 1.8.1
@@ -58,7 +57,6 @@ libmate-slab.so.0 libmate-slab0 #MINVER#
  libslab_strlen@Base 1.8.1
  libslab_thumbnail_factory_get@Base 1.8.1
  libslab_thumbnail_factory_preinit@Base 1.8.1
- load_desktop_item_by_unknown_id@Base 1.8.1
  load_desktop_item_from_unknown@Base 1.8.1
  load_image_by_id@Base 1.8.1
  nameplate_tile_get_type@Base 1.8.1
