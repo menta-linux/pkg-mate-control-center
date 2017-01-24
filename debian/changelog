@@ -1,3 +1,11 @@
+mate-control-center (1.16.0-2) unstable; urgency=medium
+
+  [ Martin Wimpress ]
+  * debian/control:
+    + Drop unused B-D docbook-to-man.
+
+ -- Mike Gabriel <sunweaver@debian.org>  Tue, 24 Jan 2017 13:41:22 +0100
+
 mate-control-center (1.16.0-1) unstable; urgency=medium
 
   [ Martin Wimpress ]
