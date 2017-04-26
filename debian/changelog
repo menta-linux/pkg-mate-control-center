@@ -1,3 +1,12 @@
+mate-control-center (1.16.1-1) unstable; urgency=medium
+
+  * New upstream release.
+    - Appearance: fix live updating of the various theme details.
+      (Closes: #781720).
+    - etc., see upstream's NEWS file...
+
+ -- Mike Gabriel <sunweaver@debian.org>  Wed, 26 Apr 2017 22:05:40 +0200
+
 mate-control-center (1.16.0-2) unstable; urgency=medium
 
   [ Martin Wimpress ]
