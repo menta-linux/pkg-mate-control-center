@@ -2,6 +2,7 @@ mate-control-center (1.18.2-1) UNRELEASED; urgency=medium
 
   [ Martin Wimpress ]
   * debian/control: Dependencies updated for MATE 1.17.
+  * debian/control: Drop dependency on libunique3 (Closes: #827230)
   * debian/rules: Remove obsolete --with-gtk=3.0
   * debian/mate-control-center-common.install: Remove obsolete usr/share/mate/
   * debian/copyright: Update copyright attributions.
