@@ -1,4 +1,7 @@
-mate-control-center (1.18.2-1) UNRELEASED; urgency=medium
+mate-control-center (1.18.2-1) unstable; urgency=medium
+
+  [ Aron Xu ]
+  * New upstream release.
 
   [ Martin Wimpress ]
   * debian/control: Dependencies updated for MATE 1.17.
@@ -8,9 +11,6 @@ mate-control-center (1.18.2-1) UNRELEASED; urgency=medium
   * debian/copyright: Update copyright attributions.
   * debian/control: Dependencies updated for MATE 1.18.
   * debian/copyright: Update copyright attributions.
-
-  [ Aron Xu ]
-  * New upstream release.
 
   [ Vangelis Mouhtsis ]
   * debian/compat:
@@ -24,7 +24,7 @@ mate-control-center (1.18.2-1) UNRELEASED; urgency=medium
   * debian/rules:
     + Disable autoreconf, handled by autogen.sh.
 
- -- Vangelis Mouhtsis <vangelis@gnugr.org>  Tue, 25 Jul 2017 13:22:49 +0300
+ -- Mike Gabriel <sunweaver@debian.org>  Tue, 25 Jul 2017 12:54:46 +0200
 
 mate-control-center (1.16.1-1) unstable; urgency=medium
 
