@@ -1,3 +1,11 @@
+mate-control-center (1.18.2-2) UNRELEASED; urgency=medium
+
+  * debian/patches:
+    + Add 0000_fix_external_localizations_in_desktop_files.patch. Fix
+    support for external localizations in .desktop files. (LP: #1594959)
+
+ -- Martin Wimpress <martin.wimpress@ubuntu.com>  Sat, 30 Dec 2017 22:42:26 +0000
+
 mate-control-center (1.18.2-1) unstable; urgency=medium
 
   [ Aron Xu ]
