@@ -1,10 +1,21 @@
-mate-control-center (1.18.2-2) UNRELEASED; urgency=medium
+mate-control-center (1.18.2-2) unstable; urgency=medium
 
+  [ Martin Wimpress ]
+  * debian/control:
+    + Bump Standards: to 4.1.2. No changes needed.
+    + Drop B-D autotools-dev. Since compatibility level 10, debhelper enables
+      the autoreconf sequence by default.
   * debian/patches:
     + Add 0000_fix_external_localizations_in_desktop_files.patch. Fix
-    support for external localizations in .desktop files. (LP: #1594959)
+      support for external localizations in .desktop files. (LP: #1594959)
+  * debian/watch:
+    + Update URI to use HTTPS.
 
- -- Martin Wimpress <martin.wimpress@ubuntu.com>  Sat, 30 Dec 2017 22:42:26 +0000
+  [ Mike Gabriel ]
+  * debian/control:
+    + Even bump Standards-Version: to 4.1.3. No changes needed.
+
+ -- Mike Gabriel <sunweaver@debian.org>  Fri, 05 Jan 2018 23:13:58 +0100
 
 mate-control-center (1.18.2-1) unstable; urgency=medium
 
