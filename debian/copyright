@@ -9,10 +9,6 @@ Files: libslab/app-resizer.c
        libslab/app-shell.h
        libslab/application-tile.c
        libslab/application-tile.h
-       libslab/directory-tile.c
-       libslab/directory-tile.h
-       libslab/document-tile.c
-       libslab/document-tile.h
        libslab/double-click-detector.c
        libslab/double-click-detector.h
        libslab/mate-utils.h
@@ -71,8 +67,6 @@ License: GPL-2
 Files: capplets/display/mate-display-properties-install-systemwide.c
        libslab/bookmark-agent.c
        libslab/bookmark-agent.h
-       libslab/system-tile.c
-       libslab/system-tile.h
        shell/control-center.c
 Copyright: 2006-2010 Novell, Inc.
 License: GPL-2+
@@ -451,6 +445,7 @@ Files: capplets/about-me/icons/Makefile.am
        typing-break/Makefile.am
        typing-break/*.png
        typing-break/*.svg
+       .github/issue_template.md
        .tx/config
        AUTHORS
        COPYING
