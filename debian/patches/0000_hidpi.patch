@@ -1,5 +1,5 @@
 diff --git a/capplets/appearance/appearance-font.c b/capplets/appearance/appearance-font.c
-index 0df8d4e..ee8544b 100644
+index 0df8d4e..cd1a4e5 100644
 --- a/capplets/appearance/appearance-font.c
 +++ b/capplets/appearance/appearance-font.c
 @@ -422,6 +422,7 @@ get_dpi_from_x_server (void)
@@ -14,9 +14,9 @@ index 0df8d4e..ee8544b 100644
      dpi = DPI_FALLBACK;
    }
  
-+  scale = gdk_window_get_scale_factor(gdk_screen_get_root_window (screen));
++  scale = gdk_window_get_scale_factor (gdk_screen_get_root_window (screen));
 +  if (scale)
-+    dpi = ceil(dpi * scale);
++    dpi = dpi * scale;
 +
    return dpi;
  }
