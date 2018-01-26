@@ -82,8 +82,8 @@ libmate-slab.so.0 libmate-slab0 #MINVER#
  nld_search_context_picker_get_type@Base 1.8.1
  nld_search_context_picker_new@Base 1.8.1
  nld_search_context_picker_set_context@Base 1.8.1
- nld_search_entry_get_type@Base 1.8.1
- nld_search_entry_new@Base 1.8.1
+#MISSING: 1.19.3# nld_search_entry_get_type@Base 1.8.1
+#MISSING: 1.19.3# nld_search_entry_new@Base 1.8.1
  open_desktop_item_exec@Base 1.8.1
  open_desktop_item_help@Base 1.8.1
  regenerate_categories@Base 1.8.1
