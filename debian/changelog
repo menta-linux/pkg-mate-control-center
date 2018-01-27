@@ -1,3 +1,9 @@
+mate-control-center (1.19.3-0ubuntu2) bionic; urgency=medium
+
+  * New maintainer upload.
+
+ -- Martin Wimpress <martin.wimpress@ubuntu.com>  Sat, 27 Jan 2018 12:35:23 +0000
+
 mate-control-center (1.19.3-0ubuntu1) bionic; urgency=medium
 
   * New upstream release.
