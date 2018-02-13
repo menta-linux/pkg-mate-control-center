@@ -1,3 +1,27 @@
+mate-control-center (1.20.0-1) unstable; urgency=medium
+
+  * debian/patches (already in 1.19.3-0ubuntu1):
+    + Add 0000_hidpi.patch. HiDPI support.
+    + Drop 0000_fix_external_localizations_in_desktop_files.patch. Applied
+      upstream.
+  * debian/libmate-slab0.symbols (already in 1.19.3-0ubuntu1):
+    + Update symbols.
+  * debian/patches (already in 1.19.3-0ubuntu2):
+    + Update 0000_hidpi.patch. Remove ceil for scaled DPI.
+  * debian/copyright (already in 1.19.3-0ubuntu1):
+    + Update copyright attributions.
+
+  [ Vangelis Mouhtsis ]
+  * debian/control (already in 1.19.3-0ubuntu1):
+    + Temporarily have pkg-mate-team ML under Uploaders:.
+    + Update Maintainer: field to debian-mate ML on lists.debian.org.
+    + Rename pretty name of our team -> Debian+Ubuntu MATE Packaging Team.
+
+  [ Mike Gabriel ]
+  * debian/{control,compat}: Bump DH version level to 11.
+
+ -- Mike Gabriel <sunweaver@debian.org>  Tue, 13 Feb 2018 17:05:52 +0100
+
 mate-control-center (1.20.0-0ubuntu1) bionic; urgency=medium
 
   * New upstream release.
