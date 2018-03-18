@@ -1,0 +1,23 @@
+Author: Brent Bradburn
+Description: Fix screen geometry to account for rotation when snapping.
+
+diff --git a/capplets/display/xrandr-capplet.c b/capplets/display/xrandr-capplet.c
+index 7089a24..a2078a6 100644
+--- a/capplets/display/xrandr-capplet.c
++++ b/capplets/display/xrandr-capplet.c
+@@ -1153,6 +1153,7 @@ list_edges_for_output (MateRROutputInfo *output, GArray *edges)
+     int x, y, w, h;
+ 
+     mate_rr_output_info_get_geometry (output, &x, &y, &w, &h);
++    get_geometry(output, &w, &h); // accounts for rotation
+ 
+     /* Top, Bottom, Left, Right */
+     add_edge (output, x, y, x + w, y, edges);
+@@ -1351,6 +1352,7 @@ static void
+ get_output_rect (MateRROutputInfo *output, GdkRectangle *rect)
+ {
+     mate_rr_output_info_get_geometry (output, &rect->x, &rect->y, &rect->width, &rect->height);
++    get_geometry (output, &rect->width, &rect->height); // accounts for rotation
+ }
+ 
+ static gboolean
