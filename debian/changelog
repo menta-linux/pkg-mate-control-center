@@ -1,3 +1,13 @@
+mate-control-center (1.20.2-2) unstable; urgency=medium
+
+  [ Martin Wimpress ]
+  * debian/patches:
+    + Add 0001_default_xcursor_to_24.patch. Change cursor-size to 24px because
+      the MATE cursor theme doesn't have an 18px cursor and 24px looks correct
+      on regular DPI and HiDPI displays.
+
+ -- Mike Gabriel <sunweaver@debian.org>  Thu, 26 Apr 2018 23:01:06 +0200
+
 mate-control-center (1.20.2-1) unstable; urgency=medium
 
   [ Martin Wimpress ]
