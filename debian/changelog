@@ -1,3 +1,14 @@
+mate-control-center (1.20.4-1) unstable; urgency=medium
+
+  * New upstream release.
+  * debian/control:
+    + Bump Standards-Version: to 4.3.0. No changes needed.
+    + White-space cleanup at EOF.
+  * debian/lib*.symbols:
+    + Add Build-Depends-Package: meta data fields.
+
+ -- Mike Gabriel <sunweaver@debian.org>  Sun, 06 Jan 2019 12:47:18 +0100
+
 mate-control-center (1.20.3-1) unstable; urgency=medium
 
   * New upstream release.
