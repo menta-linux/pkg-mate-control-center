@@ -1,8 +1,11 @@
-mate-control-center (1.22.2-1) UNRELEASED; urgency=medium
+mate-control-center (1.22.2-1) unstable; urgency=medium
 
+  [ Martin Wimpress ]
   * New upstream release.
+  * debian/patches:
+    + Drop 0001_fix_preferred_apps_icon_sizes.patch. Applied upstream.
 
- -- Martin Wimpress <martin.wimpress@ubuntu.com>  Sat, 21 Sep 2019 13:33:57 +0200
+ -- Mike Gabriel <sunweaver@debian.org>  Fri, 27 Sep 2019 19:48:58 +0200
 
 mate-control-center (1.22.1-1) unstable; urgency=medium
 
