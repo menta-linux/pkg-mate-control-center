@@ -38,6 +38,7 @@ Build-Depends: debhelper-compat (=12),
                xsltproc,
                yelp-tools,
 Standards-Version: 4.4.1
+Rules-Requires-Root: no
 Homepage: http://www.mate-desktop.org/
 Vcs-Browser: https://salsa.debian.org/debian-mate-team/mate-control-center
 Vcs-Git: https://salsa.debian.org/debian-mate-team/mate-control-center.git
