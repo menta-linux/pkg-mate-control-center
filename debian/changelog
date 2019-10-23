@@ -1,3 +1,13 @@
+mate-control-center (1.22.2-2) unstable; urgency=medium
+
+  [ Martin Wimpress ]
+  * debian/patches:
+    + Add 0001_uniform_icon_size.patch. Enforce uniform size on icons.
+    + Add 0002_icons_as_cairo_surfaces.patch. Load icons as cairo surfaces so
+      they are sharp on HiDPI displays. (LP: #1846386)
+
+ -- Mike Gabriel <sunweaver@debian.org>  Wed, 23 Oct 2019 14:53:34 +0200
+
 mate-control-center (1.22.2-1) unstable; urgency=medium
 
   [ Martin Wimpress ]
