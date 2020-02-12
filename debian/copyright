@@ -31,6 +31,11 @@ Files: libslab/app-resizer.c
 Copyright: 2006-2007, Novell, Inc.
 License: LGPL-2+
 
+Files: capplets/accessibility/at-properties/dm-util.c
+       capplets/accessibility/at-properties/dm-util.h
+Copyright: 2019, Wu Xiaotian <yetist@gmail.com>
+License: GPL-2+
+
 Files: capplets/appearance/appearance-desktop.c
        capplets/appearance/appearance-desktop.h
        capplets/appearance/appearance-main.c
@@ -173,11 +178,6 @@ Files: capplets/display/scrollarea.c
 Copyright: 2006-2008, Soren Sandmann <sandmann@daimi.au.dk>
 License: LGPL-2+
 
-Files: capplets/common/capplet-stock-icons.c
-       capplets/common/capplet-stock-icons.h
-Copyright: 2002, Sun Microsystems, Inc.
-License: LGPL-2+
-
 Files: typing-break/drw-selection.c
        typing-break/drw-selection.h
 Copyright: 2002, Red Hat, Inc.
@@ -234,6 +234,13 @@ License: GPL-2+
 
 Files: capplets/network/mate-network-properties.c
 Copyright: 2002, Sun Microsystems, Inc.
+License: GPL-2+
+
+Files: capplets/time-admin/*
+Copyright: 2018-2019 zhuyaliang
+           2010-2018, The GNOME Project
+           2010, Intel, Inc
+           2009, Evan Dandrea <evand@ubuntu.com>
 License: GPL-2+
 
 Files: capplets/common/mate-theme-apply.c
@@ -325,12 +332,16 @@ License: GFDL-1.1+
 
 Files: capplets/about-me/Makefile.am
        capplets/about-me/mate-about-me-password.h
+       capplets/about-me/org.mate.mcc.am.gresource.xml
+       capplets/about-me/ui-a11y.suppr
        capplets/about-me/*.list
        capplets/about-me/*.ui
        capplets/about-me/*.in
        capplets/about-me/AUTHORS
        capplets/accessibility/at-properties/Makefile.am
        capplets/accessibility/at-properties/main.c
+       capplets/accessibility/at-properties/org.mate.mcc.accessibility.at.gresource.xml
+       capplets/accessibility/at-properties/ui-a11y.suppr
        capplets/accessibility/at-properties/*.ui
        capplets/accessibility/at-properties/*.png
        capplets/accessibility/at-properties/*.in
@@ -339,6 +350,8 @@ Files: capplets/about-me/Makefile.am
        capplets/appearance/data/*.png
        capplets/appearance/data/*.in
        capplets/appearance/data/*.ui
+       capplets/appearance/data/ui-a11y.suppr
+       capplets/appearance/org.mate.mcc.appearance.gresource.xml
        capplets/appearance/Makefile.am
        capplets/common/Makefile.am
        capplets/common/activate-settings-daemon.c
@@ -349,39 +362,59 @@ Files: capplets/about-me/Makefile.am
        capplets/common/wm-common.c
        capplets/common/wm-common.h
        capplets/default-applications/Makefile.am
+       capplets/default-applications/icons/Makefile.am
+       capplets/default-applications/icons/*/*/instant-messaging.png
        capplets/default-applications/*.in
        capplets/default-applications/*.ui
+       capplets/default-applications/org.mate.mcc.da.gresource.xml
        capplets/display/Makefile.am
        capplets/display/TODO
        capplets/display/*.ui
        capplets/display/*.in
        capplets/display/foo-marshal.*
        capplets/display/Makefile.am
+       capplets/display/org.mate.mcc.display.gresource.xml
+       capplets/display/ui-a11y.suppr
        capplets/keybindings/Makefile.am
        capplets/keybindings/eggcellrendererkeys.c
        capplets/keybindings/mate-keybinding-properties.c
        capplets/keybindings/*.in
        capplets/keybindings/*.ui
+       capplets/keybindings/ui-a11y.suppr
+       capplets/keybindings/org.mate.mcc.keybindings.gresource.xml
        capplets/keyboard/Makefile.am
        capplets/keyboard/*.in
        capplets/keyboard/*.ui
+       capplets/keyboard/org.mate.mcc.keyboard.gresource.xml
+       capplets/keyboard/ui-a11y.suppr
        capplets/mouse/Makefile.am
        capplets/mouse/double-click-maybe.svg
        capplets/mouse/double-click-off.svg
        capplets/mouse/double-click-on.svg
+       capplets/mouse/org.mate.mcc.mouse.gresource.xml
+       capplets/mouse/ui-a11y.suppr
        capplets/mouse/*.in
        capplets/mouse/*.ui
        capplets/network/Makefile.am
+       capplets/network/org.mate.mcc.network.gresource.xml
+       capplets/network/ui-a11y.suppr
        capplets/network/*.in
        capplets/network/*.ui
        capplets/windows/Makefile.am
        capplets/windows/*.in
        capplets/windows/mate-metacity-support.c
        capplets/windows/mate-metacity-support.h
+       capplets/windows/org.mate.mcc.windows.gresource.xml
+       capplets/windows/window-properties.ui
        capplets/Makefile.am
        font-viewer/Makefile.am
        font-viewer/*.in
        font-viewer/*.thumbnailer
+       gla11y.mk
+       its/marco-keybindings.its
+       its/marco-keybindings.loc
+       its/mimeinfo.its
+       its/mimeinfo.loc
        libslab/Makefile.am
        libslab/libslab-utils.c
        libslab/libslab-utils.h
@@ -395,6 +428,7 @@ Files: capplets/about-me/Makefile.am
        makepot
        man/Makefile.am
        po/LINGUAS
+       po/Makevars
        po/POTFILES.in
        po/POTFILES.skip
        shell/Makefile.am
@@ -404,10 +438,10 @@ Files: capplets/about-me/Makefile.am
        typing-break/*.png
        typing-break/*.svg
        .github/issue_template.md
+       .github/FUNDING.yml
        .tx/config
        .travis.yml
        AUTHORS
-       COPYING
        ChangeLog
        Makefile.am
        NEWS
