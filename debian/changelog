@@ -1,4 +1,4 @@
-mate-control-center (1.24.0-1) UNRELEASED; urgency=medium
+mate-control-center (1.24.0-1) unstable; urgency=medium
 
   [ Mike Gabriel ]
   * debian/control:
@@ -7,11 +7,24 @@ mate-control-center (1.24.0-1) UNRELEASED; urgency=medium
   * debian/upstream/metadata:
     + Drop obsolete fields Contact: and Name:.
     + Append .git suffix to URLs in Repository: field.
+  * debian/{mate-time-admin.1,mate-control-center-common.manpages}:
+    + Add manpage for mate-time-admin.
 
   [ Martin Wimpress ]
   * New upstream release.
+  * debian/patches:
+    + Drop 0001_uniform_icon_size.patch. Applied upstream.
+    + Drop 0002_icons_as_cairo_surfaces.patch. Applied upstream.
+  * debian/copyright:
+    + Update copyright attributions.
+  * debian/control:
+    + Update Build-Depends: to support MATE Desktop 1.24.
+    + Add B-D libaccountsservice-dev (>= 0.6.21).
+    + Add B-D libxml2-utils.
+  * debian/mate-control-center-common.install:
+    + Add usr/share/mate-time-admin/.
 
- -- Martin Wimpress <martin.wimpress@ubuntu.com>  Wed, 12 Feb 2020 22:22:54 +0000
+ -- Mike Gabriel <sunweaver@debian.org>  Thu, 13 Feb 2020 20:39:15 +0100
 
 mate-control-center (1.22.2-2) unstable; urgency=medium
 
