@@ -1,8 +1,20 @@
-mate-control-center (1.24.1-1) UNRELEASED; urgency=medium
+mate-control-center (1.24.1-1) unstable; urgency=medium
 
+  [ Martin Wimpress ]
   * New upstream release
+  * debian/libmate-slab0.symbols:
+    + Update symbols. Ported libslab_handle_g_error to the built-in GLib logging
+      framework.
 
- -- Martin Wimpress <martin.wimpress@ubuntu.com>  Mon, 17 Aug 2020 12:34:30 +0100
+  [ Mike Gabriel ]
+  * debian/control:
+    + Bump DH compat level to version 13.
+  * debian/copyright:
+    + Update copyright attributions.
+  * debian/libmate-slab0.lintian-overrides:
+    + Update tag name: exit-in-shared-library.
+
+ -- Mike Gabriel <sunweaver@debian.org>  Fri, 21 Aug 2020 23:13:30 +0200
 
 mate-control-center (1.24.0-1) unstable; urgency=medium
 
