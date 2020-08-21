@@ -441,6 +441,7 @@ Files: capplets/about-me/Makefile.am
        .github/FUNDING.yml
        .tx/config
        .travis.yml
+       .build.yml
        AUTHORS
        ChangeLog
        Makefile.am
