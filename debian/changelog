@@ -1,9 +1,21 @@
-mate-control-center (1.26.0-1) UNRELEASED; urgency=medium
+mate-control-center (1.26.0-1) unstable; urgency=medium
 
-  * New upstream maintenance release.
+  [ Martin Wimpress ]
   * New upstream release.
+  * debian/libmate-slab0.symbols:
+    + Symbols updated for 1.26
 
- -- Martin Wimpress <code@wimpress.io>  Sat, 21 Aug 2021 18:02:07 +0100
+  [ Mike Gabriel ]
+  * debian/control:
+    + Bump Standards-Version: to 4.6.0. No changes needed.
+  * debian/watch:
+    + Use format version 4.
+  * debian/copyright:
+    + Update copyright attributions.
+  * debian/libmate-window-settings1.symbols:
+    + Add Build-Depends-Package: meta data field for all .so files mentioned.
+
+ -- Mike Gabriel <sunweaver@debian.org>  Sat, 11 Dec 2021 21:59:02 +0100
 
 mate-control-center (1.24.1-1) unstable; urgency=medium
 
