@@ -3,6 +3,7 @@ libmarco.so libmate-window-settings1 #MINVER#
  marco_window_manager_get_type@Base 1.8.1
  window_manager_new@Base 1.8.1
 libmate-window-settings.so.1 libmate-window-settings1 #MINVER#
+* Build-Depends-Package: libmate-window-settings-dev
  mate_window_manager_change_settings@Base 1.8.1
  mate_window_manager_get_ditem@Base 1.8.1
  mate_window_manager_get_double_click_actions@Base 1.8.1
