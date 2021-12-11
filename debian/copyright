@@ -34,6 +34,7 @@ License: LGPL-2+
 Files: capplets/accessibility/at-properties/dm-util.c
        capplets/accessibility/at-properties/dm-util.h
 Copyright: 2019, Wu Xiaotian <yetist@gmail.com>
+           2019-2021, MATE developers
 License: GPL-2+
 
 Files: capplets/appearance/appearance-desktop.c
@@ -118,7 +119,12 @@ Files: capplets/appearance/appearance-support.c
        capplets/appearance/appearance-support.h
        capplets/common/dconf-util.c
        capplets/common/dconf-util.h
+       capplets/windows/mate-metacity-support.c
+       capplets/windows/mate-metacity-support.h
 Copyright: 2012, Stefano Karapetsas
+           2014, Stefano Karapetsas
+           2012-2021, MATE Developers
+           2019-2021, MATE Developers
 License: GPL-2+
 
 Files: capplets/appearance/appearance-font.c
@@ -148,8 +154,9 @@ Files: font-viewer/font-model.c
        font-viewer/sushi-font-loader.h
        font-viewer/sushi-font-widget.c
        font-viewer/sushi-font-widget.h
-Copyright: 2011-2012 Cosimo Cecchi <cosimoc@gnome.org>
-           2002-2003  James Henstridge <james@daa.com.au>
+Copyright: 2011-2012, Cosimo Cecchi <cosimoc@gnome.org>
+           2002-2003, James Henstridge <james@daa.com.au>
+           2013-2021, MATE Developers
 License: GPL-2+
 
 Files: typing-break/drw-utils.c
@@ -234,13 +241,16 @@ License: GPL-2+
 
 Files: capplets/network/mate-network-properties.c
 Copyright: 2002, Sun Microsystems, Inc.
+           2012, Stefano Karapetsas
+           2012-2021, MATE Developers
 License: GPL-2+
 
 Files: capplets/time-admin/*
-Copyright: 2018-2019 zhuyaliang
+Copyright: 2018-2019, zhuyaliang
            2010-2018, The GNOME Project
            2010, Intel, Inc
-           2009, Evan Dandrea <evand@ubuntu.com>
+           2009, Canonical Ltd. (Evan Dandrea <evand@ubuntu.com>)
+           2019-2021, MATE Developers
 License: GPL-2+
 
 Files: capplets/common/mate-theme-apply.c
@@ -334,7 +344,6 @@ Files: capplets/about-me/Makefile.am
        capplets/about-me/mate-about-me-password.h
        capplets/about-me/org.mate.mcc.am.gresource.xml
        capplets/about-me/ui-a11y.suppr
-       capplets/about-me/*.list
        capplets/about-me/*.ui
        capplets/about-me/*.in
        capplets/about-me/AUTHORS
@@ -372,7 +381,6 @@ Files: capplets/about-me/Makefile.am
        capplets/display/*.ui
        capplets/display/*.in
        capplets/display/foo-marshal.*
-       capplets/display/Makefile.am
        capplets/display/org.mate.mcc.display.gresource.xml
        capplets/display/ui-a11y.suppr
        capplets/keybindings/Makefile.am
@@ -402,8 +410,6 @@ Files: capplets/about-me/Makefile.am
        capplets/network/*.ui
        capplets/windows/Makefile.am
        capplets/windows/*.in
-       capplets/windows/mate-metacity-support.c
-       capplets/windows/mate-metacity-support.h
        capplets/windows/org.mate.mcc.windows.gresource.xml
        capplets/windows/window-properties.ui
        capplets/Makefile.am
@@ -455,6 +461,11 @@ Copyright: *No copyright*
 License: GPL-2+
 Comment:
  Using license from COPYING file.
+
+Files: git.mk
+Copyright: 2009, Red Hat, Inc.
+  2010,2011,2012,2013, Behdad Esfahbod
+License: public-domain
 
 Files: debian/*
 Copyright: 2011-2014, Stefano Karapetsas <stefano@karapetsas.com>
@@ -557,3 +568,8 @@ License: GFDL-1.1+
  .
  On Debian systems, the complete text of the GNU Free Documentation License
  version 1.2 can be found in "/usr/share/common-licenses/GFDL-1.2".
+
+License: public-domain
+ Copying and distribution of this file, with or without modification,
+ is permitted in any medium without royalty provided the copyright
+ notice and this notice are preserved.
