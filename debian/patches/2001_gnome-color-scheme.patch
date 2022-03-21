@@ -1,0 +1,60 @@
+diff --git a/capplets/appearance/appearance-support.c b/capplets/appearance/appearance-support.c
+index 7c339e5..b40419a 100644
+--- a/capplets/appearance/appearance-support.c
++++ b/capplets/appearance/appearance-support.c
+@@ -100,19 +100,41 @@ metacity_theme_apply(const gchar *theme, const gchar *font)
+     }
+ }
+ 
++static void
++color_scheme_apply(const gchar *theme)
++{
++    if (is_program_in_path ("gsettings"))
++    {
++        gchar *gsettings_cmd = NULL;
++
++        /* Make libhandy apps dark/light */
++        if (g_str_has_suffix (theme, "-dark"))
++        {
++            gsettings_cmd = g_strdup_printf("gsettings set org.gnome.desktop.interface color-scheme prefer-dark");
++        } else
++        {
++            gsettings_cmd = g_strdup_printf("gsettings set org.gnome.desktop.interface color-scheme default");
++        }
++        g_spawn_command_line_async (gsettings_cmd, NULL);
++        g_free (gsettings_cmd);
++    }
++}
++
+ static void
+ marco_theme_changed(GSettings *settings, gchar *key, AppearanceData* data)
+ {
+     gchar *theme = NULL;
+     gchar *font = NULL;
++
++    theme = g_settings_get_string (settings, MARCO_THEME_KEY);
++    font = g_settings_get_string (settings, WINDOW_TITLE_FONT_KEY);
++    color_scheme_apply (theme);
+     if (metacity_is_running ())
+     {
+-        theme = g_settings_get_string (settings, MARCO_THEME_KEY);
+-        font = g_settings_get_string (settings, WINDOW_TITLE_FONT_KEY);
+         metacity_theme_apply (theme, font);
+-        g_free (theme);
+-        g_free (font);
+     }
++    g_free (theme);
++    g_free (font);
+ }
+ 
+ void
+@@ -126,8 +148,7 @@ support_init(AppearanceData* data)
+     g_signal_connect (data->marco_settings, "changed::" WINDOW_TITLE_FONT_KEY,
+                       G_CALLBACK (marco_theme_changed), data);
+     /* apply theme at start */
+-    if (metacity_is_running ())
+-        marco_theme_changed (data->marco_settings, NULL, data);
++    marco_theme_changed (data->marco_settings, NULL, data);
+ }
+ 
+ void
