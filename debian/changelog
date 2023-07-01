@@ -1,7 +1,14 @@
-mate-control-center (1.26.1-1) UNRELEASED; urgency=medium
+mate-control-center (1.26.1-1) unstable; urgency=medium
 
   [ Mike Gabriel ]
   * New upstream release.
+    - Various memleak fixes. (Closes: #1040019).
+  * debian/copyright:
+    + Update copyright attribution for debian/ folder.
+  * debian/control:
+    + Bump Standards-Version: to 4.6.2. No changes needed.
+  * debian/libmate-slab0.lintian-overrides:
+    + Update lintian syntax.
 
   [ Martin Wimpress ]
   * debian/patches:
@@ -10,7 +17,7 @@ mate-control-center (1.26.1-1) UNRELEASED; urgency=medium
       and update it to support Pluma and Plank.
     + Add 2002-remove_obsolete_lock_button.patch (LP: #1955339)
 
- -- Mike Gabriel <sunweaver@debian.org>  Thu, 22 Jun 2023 20:19:37 +0200
+ -- Mike Gabriel <sunweaver@debian.org>  Sat, 01 Jul 2023 06:19:52 +0200
 
 mate-control-center (1.26.0-2) unstable; urgency=medium
 
