@@ -1,3 +1,9 @@
+mate-control-center (1.28.1-1) UNRELEASED; urgency=medium
+
+  * New upstream release.
+
+ -- Sui Vue <suivue@tutamail.com>  Sun, 02 Aug 2026 12:17:16 +0530
+
 mate-control-center (1.26.1-1) unstable; urgency=medium
 
   [ Mike Gabriel ]
