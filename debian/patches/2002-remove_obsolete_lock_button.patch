@@ -1,3 +1,10 @@
+Description: Add 2002-remove_obsolete_lock_button.patch
+ Commit id: d4c2083f9e34888d1082be4bb7a24b68d40dfe78
+Author: Martin Wimpress <code@wimpress.io>
+Forwarded: not-needed
+Last-Update: 2026-08-02
+---
+This patch header follows DEP-3: http://dep.debian.net/deps/dep3/
 diff --git a/capplets/time-admin/src/time-admin.ui b/capplets/time-admin/src/time-admin.ui
 index dc4e7b2..1508b58 100644
 --- a/capplets/time-admin/src/time-admin.ui

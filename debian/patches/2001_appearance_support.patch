@@ -1,3 +1,13 @@
+Description: Add appearance color scheme support
+ Commit id: 4bcfece65d8ac87456fed2c9cc27a7b1e59469d5 introduced as,
+ "2001_gnome-color-scheme.patch".
+ Commit id: 125347d68f3ccb5b5de1762293ea6117cf673738 renamed the patch as,
+ "2001_appearance_support.patch" and added support for Pluma and Plank.
+Author: Martin Wimpress <code@wimpress.io>
+Forwarded: not-needed
+Last-Update: 2026-08-02
+---
+This patch header follows DEP-3: http://dep.debian.net/deps/dep3/
 diff --git a/capplets/appearance/appearance-support.c b/capplets/appearance/appearance-support.c
 index 7c339e5..1f2917b 100644
 --- a/capplets/appearance/appearance-support.c
