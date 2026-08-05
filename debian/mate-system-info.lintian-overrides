@@ -1,0 +1,3 @@
+# Very simple application displaying system info; does not take any args
+# including '--help'
+mate-control-center: no-manual-page [usr/bin/mate-system-info]
