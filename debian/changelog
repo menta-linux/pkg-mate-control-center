@@ -1,8 +1,47 @@
-mate-control-center (1.28.1-1) UNRELEASED; urgency=medium
+mate-control-center (1.28.1-1) unstable; urgency=medium
 
+  [ Sui Vue ]
   * New upstream release.
+  * debian/control:
+    + Update debhelper-compat to 14.
+    + Update Standards-Version to 4.7.4.
+    + Add 'libudisks2-dev' and 'libayatana-appindicator3-dev' to B-D.
+    + Drop obsolete 'libmate-slab0t64' and 'libmate-window-settings1t64' from
+      'Depends' of 'mate-control-center' package.
+    + Remove packages 'libmate-window-settings1t64', 'libmate-window-settings-
+      dev',
+      'libmate-slab0t64' and 'libmate-slab-dev'. Libraries removed upstream.
+    + Drop redundant fields 'Priority: optional' and 'Rules-Requires-Root: no'.
+  * Delete following files as the corresponding libraries are removed by
+    upstream:
+      - libmate-slab0.install
+      - libmate-slab0.lintian-overrides
+      - libmate-slab0.symbols
+      - libmate-slab-dev.install
+      - libmate-window-settings1.install
+      - libmate-window-settings1.symbols
+      - libmate-window-settings-dev.install
+    + Reference:
+      - Commit 4bd1a51c9a5d0d5e2f570a21d12b521e68cc4ffd
+        (Remove  "libwindow settings" that are no longer in use)
+      - Commit c2e94e1925f3c7acfa3fd3352dc8fdafe6375adc
+        (Remove libslab library - libslab is only used in mate-c-c and
+         there is no need to provide a library)
+  * debian/patches:
+    + Add header information to patches for dep3 compliance.
+  * debian/copyright:
+    + Update copyright information.
+  * debian/watch:
+    + Switch to version 5.
+    + Use GitHub releases URL for 'Source' field to address "502 Bad Gateway"
+      error with previous source URL.
+  * Add lintian-override: mate-system-info no manualpage.
 
- -- Sui Vue <suivue@tutamail.com>  Sun, 02 Aug 2026 12:17:16 +0530
+  [ Mike Gabriel ]
+  * debian/control:
+    + Drop from B-D: intltool, add gettext instead.
+
+ -- Mike Gabriel <sunweaver@debian.org>  Thu, 13 Aug 2026 17:16:07 +0200
 
 mate-control-center (1.26.1-1) unstable; urgency=medium
 
