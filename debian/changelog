@@ -1,3 +1,10 @@
+mate-control-center (1.28.2-1menta3) unstable; urgency=medium
+
+  * Add 3006: guard X11 atom/window calls in wm-common.c on Wayland (as
+    on upstream master); fixes SIGSEGV in mate-keybinding-properties.
+
+ -- Menta Linux <packages@menta-linux.invalid>  Sun, 15 Nov 2026 00:07:12 -0700
+
 mate-control-center (1.28.2-1menta2) unstable; urgency=medium
 
   * Add mate-control-center PR 842: mouse capplet no longer crashes on
