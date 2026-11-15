@@ -2,9 +2,9 @@ mate-control-center (1.29.1+git20261115.fa87b1c-1menta1) unstable; urgency=mediu
 
   * Build from upstream master fa87b1c (PRs 839 and 840 are upstream
     now); drop old 3001-3006.
-  * Patches: 832 (default-applications icons), 841 (typing-break
-    Wayland), 842 (mouse Wayland), and KeremSoke commit b4186a7 (windows
-    capplet on Marco-settings Wayland compositors).
+  * Patches: 841 (typing-break Wayland), 842 (mouse Wayland), and
+    KeremSoke commit b4186a7 (windows capplet on Marco-settings Wayland
+    compositors).
 
  -- Menta Linux <packages@menta-linux.invalid>  Sun, 15 Nov 2026 00:10:03 -0700
 

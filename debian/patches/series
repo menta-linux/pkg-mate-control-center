@@ -1,6 +1,5 @@
 2001_appearance_support.patch
 2002-remove_obsolete_lock_button.patch
-3001-default-applications-standard-icon-names.patch
-3002-typing-break-work-on-wayland.patch
-3003-mouse-dont-crash-and-work-on-wayland.patch
-3004-windows-run-on-wayland-marco-settings.patch
+3001-typing-break-work-on-wayland.patch
+3002-mouse-dont-crash-and-work-on-wayland.patch
+3003-windows-run-on-wayland-marco-settings.patch
