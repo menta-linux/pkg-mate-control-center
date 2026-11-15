@@ -1,10 +1,30 @@
 Description: typing-break: work on Wayland
-Author: KeremSoke
-Origin: other, https://github.com/mate-desktop/mate-control-center/pull/841
+Author: Kerem Soke
+Origin: https://github.com/mate-desktop/mate-control-center/pull/841
 Forwarded: https://github.com/mate-desktop/mate-control-center/pull/841
 
+From 365eba7109161c5f7711cf0589e61d0c8409052b Mon Sep 17 00:00:00 2001
+From: KeremSoke <keremsoke@gmail.com>
+Date: Fri, 13 Nov 2026 19:00:23 -0700
+Subject: [PATCH] typing-break: work on Wayland
+
+---
+ typing-break/Makefile.am        |   3 +
+ typing-break/drw-break-window.c |  10 +--
+ typing-break/drw-idle-wayland.c | 153 ++++++++++++++++++++++++++++++++
+ typing-break/drw-idle-wayland.h |  34 +++++++
+ typing-break/drw-monitor.c      |  65 +++++++++++++-
+ typing-break/drw-selection.c    |  47 +++++++++-
+ typing-break/drw-utils.c        |  32 ++++++-
+ typing-break/drw-utils.h        |   1 +
+ typing-break/drwright.c         |   6 +-
+ typing-break/meson.build        |  43 +++++++--
+ 10 files changed, 369 insertions(+), 25 deletions(-)
+ create mode 100644 typing-break/drw-idle-wayland.c
+ create mode 100644 typing-break/drw-idle-wayland.h
+
 diff --git a/typing-break/Makefile.am b/typing-break/Makefile.am
-index 5290b04..f018ecb 100644
+index 5290b0418..f018ecb14 100644
 --- a/typing-break/Makefile.am
 +++ b/typing-break/Makefile.am
 @@ -33,6 +33,9 @@ if HAVE_LIBCANBERRA_GTK
@@ -18,7 +38,7 @@ index 5290b04..f018ecb 100644
  dist_image_DATA = bar.png bar-red.png bar-green.png bar-disabled.png ocean-stripes.png
  
 diff --git a/typing-break/drw-break-window.c b/typing-break/drw-break-window.c
-index 9e51ac6..aec7a0a 100644
+index 9e51ac645..aec7a0a29 100644
 --- a/typing-break/drw-break-window.c
 +++ b/typing-break/drw-break-window.c
 @@ -126,6 +126,7 @@ drw_break_window_init (DrwBreakWindow *window)
@@ -52,7 +72,7 @@ index 9e51ac6..aec7a0a 100644
  	gtk_widget_set_hexpand (outer_vbox, TRUE);
 diff --git a/typing-break/drw-idle-wayland.c b/typing-break/drw-idle-wayland.c
 new file mode 100644
-index 0000000..8c9db6a
+index 000000000..8c9db6a07
 --- /dev/null
 +++ b/typing-break/drw-idle-wayland.c
 @@ -0,0 +1,153 @@
@@ -211,7 +231,7 @@ index 0000000..8c9db6a
 +}
 diff --git a/typing-break/drw-idle-wayland.h b/typing-break/drw-idle-wayland.h
 new file mode 100644
-index 0000000..5a44128
+index 000000000..5a4412844
 --- /dev/null
 +++ b/typing-break/drw-idle-wayland.h
 @@ -0,0 +1,34 @@
@@ -250,7 +270,7 @@ index 0000000..5a44128
 +
 +#endif /* __DRW_IDLE_WAYLAND_H__ */
 diff --git a/typing-break/drw-monitor.c b/typing-break/drw-monitor.c
-index bd103a4..5df4c09 100644
+index bd103a483..5df4c09d2 100644
 --- a/typing-break/drw-monitor.c
 +++ b/typing-break/drw-monitor.c
 @@ -34,6 +34,12 @@
@@ -372,7 +392,7 @@ index bd103a4..5df4c09 100644
  	return TRUE;
  }
 diff --git a/typing-break/drw-selection.c b/typing-break/drw-selection.c
-index 3145440..d6a525f 100644
+index 314544019..d6a525fd7 100644
 --- a/typing-break/drw-selection.c
 +++ b/typing-break/drw-selection.c
 @@ -31,8 +31,12 @@ struct _DrwSelection
@@ -455,7 +475,7 @@ index 3145440..d6a525f 100644
  	return drw_selection->invisible != NULL;
  }
 diff --git a/typing-break/drw-utils.c b/typing-break/drw-utils.c
-index c70806a..52a13c0 100644
+index c70806a56..52a13c032 100644
 --- a/typing-break/drw-utils.c
 +++ b/typing-break/drw-utils.c
 @@ -90,6 +90,35 @@ create_tile_pixbuf (GdkPixbuf    *dest_pixbuf,
@@ -505,7 +525,7 @@ index c70806a..52a13c0 100644
  	tmp_pixbuf = gdk_pixbuf_get_from_window (gdk_screen_get_root_window (screen),
  						 0,
 diff --git a/typing-break/drw-utils.h b/typing-break/drw-utils.h
-index 949fe4e..4b9c2f2 100644
+index 949fe4e2c..4b9c2f2b4 100644
 --- a/typing-break/drw-utils.h
 +++ b/typing-break/drw-utils.h
 @@ -24,6 +24,7 @@
@@ -517,7 +537,7 @@ index 949fe4e..4b9c2f2 100644
  
  #endif /* __DRW_UTILS_H__ */
 diff --git a/typing-break/drwright.c b/typing-break/drwright.c
-index 8230611..cf418d5 100644
+index 823061111..cf418d512 100644
 --- a/typing-break/drwright.c
 +++ b/typing-break/drwright.c
 @@ -532,6 +532,7 @@ create_secondary_break_windows (void)
@@ -541,7 +561,7 @@ index 8230611..cf418d5 100644
  		gtk_widget_set_app_paintable (GTK_WIDGET (window), TRUE);
  		drw_setup_background (GTK_WIDGET (window));
 diff --git a/typing-break/meson.build b/typing-break/meson.build
-index 29033b9..8d36cf2 100644
+index 29033b95a..8d36cf2cb 100644
 --- a/typing-break/meson.build
 +++ b/typing-break/meson.build
 @@ -13,17 +13,42 @@ deps = [

@@ -1,13 +1,24 @@
-Description: default-applications: Use standard icon names
-Author: Balló György
-Origin: other, https://github.com/mate-desktop/mate-control-center/pull/832
+Description: default-applications: use standard icon names
+Author: Kerem Soke
+Origin: https://github.com/mate-desktop/mate-control-center/pull/832
 Forwarded: https://github.com/mate-desktop/mate-control-center/pull/832
 
+From 1c76ea3cc526e8896ba9d9fa63131ed016ea418c Mon Sep 17 00:00:00 2001
+From: =?UTF-8?q?Ball=C3=B3=20Gy=C3=B6rgy?= <ballogyor@gmail.com>
+Date: Mon, 5 Oct 2026 22:09:25 +0200
+Subject: [PATCH] default-applications: Use standard icon names
+
+Set icon names that comply with the Icon Naming Specification on the
+dialog.
+---
+ .../mate-default-applications-properties.ui               | 8 ++++----
+ 1 file changed, 4 insertions(+), 4 deletions(-)
+
 diff --git a/capplets/default-applications/mate-default-applications-properties.ui b/capplets/default-applications/mate-default-applications-properties.ui
-index 20c094f..2dee123 100644
+index 29b922be8..30bc35eab 100644
 --- a/capplets/default-applications/mate-default-applications-properties.ui
 +++ b/capplets/default-applications/mate-default-applications-properties.ui
-@@ -566,7 +566,7 @@
+@@ -567,7 +567,7 @@
                              <property name="visible">True</property>
                              <property name="can_focus">False</property>
                              <property name="valign">start</property>
@@ -16,7 +27,7 @@ index 20c094f..2dee123 100644
                              <property name="icon_size">5</property>
                            </object>
                            <packing>
-@@ -636,7 +636,7 @@
+@@ -637,7 +637,7 @@
                              <property name="visible">True</property>
                              <property name="can_focus">False</property>
                              <property name="valign">start</property>
@@ -25,7 +36,7 @@ index 20c094f..2dee123 100644
                              <property name="icon_size">5</property>
                            </object>
                            <packing>
-@@ -706,7 +706,7 @@
+@@ -707,7 +707,7 @@
                              <property name="visible">True</property>
                              <property name="can_focus">False</property>
                              <property name="valign">start</property>
@@ -34,7 +45,7 @@ index 20c094f..2dee123 100644
                              <property name="icon_size">5</property>
                            </object>
                            <packing>
-@@ -1102,7 +1102,7 @@
+@@ -1103,7 +1103,7 @@
                              <property name="visible">True</property>
                              <property name="can_focus">False</property>
                              <property name="valign">start</property>

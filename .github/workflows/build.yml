@@ -23,12 +23,16 @@ jobs:
 
       - uses: actions/checkout@v4
 
-      - name: Fetch upstream tarball
+      - name: Fetch upstream commit
         run: |
+          # version looks like 1.29.1+git20261115.fa87b1c-1menta1 -> commit fa87b1c
           UPSTREAM=$(dpkg-parsechangelog -S Version | sed 's/-[^-]*$//')
+          COMMIT=${UPSTREAM##*.}
           mkdir -p ../build
-          curl -fsSL -o "../build/mate-control-center_${UPSTREAM}.orig.tar.xz" \
-            "https://github.com/mate-desktop/mate-control-center/releases/download/v${UPSTREAM}/mate-control-center-${UPSTREAM}.tar.xz"
+          git clone https://github.com/mate-desktop/mate-control-center.git ../build/upstream
+          git -C ../build/upstream checkout "$COMMIT"
+          git -C ../build/upstream archive --format=tar --prefix="mate-control-center-${UPSTREAM}/" HEAD \
+            | xz > "../build/mate-control-center_${UPSTREAM}.orig.tar.xz"
           tar -C ../build -xf "../build/mate-control-center_${UPSTREAM}.orig.tar.xz"
           cp -a debian "../build/mate-control-center-${UPSTREAM}/"
           echo "SRCDIR=$(realpath ../build/mate-control-center-${UPSTREAM})" >> "$GITHUB_ENV"
