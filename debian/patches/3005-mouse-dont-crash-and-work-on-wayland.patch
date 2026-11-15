@@ -1,0 +1,362 @@
+Description: mouse: do not crash and list devices over D-Bus on Wayland (mate-mouse-properties SIGSEGV); hide Sensitivity where libinput drives the devices
+Author: Kerem Soke
+Origin: upstream, https://github.com/mate-desktop/mate-control-center/pull/842
+Forwarded: https://github.com/mate-desktop/mate-control-center/pull/842
+
+From 903241a7c121d24580e1bc09a3c4c1a0bf4b1218 Mon Sep 17 00:00:00 2001
+From: KeremSoke <keremsoke@gmail.com>
+Date: Fri, 13 Nov 2026 19:42:44 -0700
+Subject: [PATCH 1/2] mouse: don't crash and list devices over D-Bus on Wayland
+
+---
+ capplets/mouse/mate-mouse-properties.c |  20 ++++-
+ capplets/mouse/msd-input-helper.c      | 120 +++++++++++++++++++++++++
+ capplets/mouse/msd-input-helper.h      |   2 +
+ 3 files changed, 138 insertions(+), 4 deletions(-)
+
+diff --git a/capplets/mouse/mate-mouse-properties.c b/capplets/mouse/mate-mouse-properties.c
+index 15e812925..f3acf21b3 100644
+--- a/capplets/mouse/mate-mouse-properties.c
++++ b/capplets/mouse/mate-mouse-properties.c
+@@ -171,6 +171,14 @@ orientation_radio_button_toggled (GtkToggleButton *togglebutton,
+ 	g_settings_set_boolean (mouse_settings, "left-handed", left_handed);
+ }
+ 
++/* A touchpad without a physical left button needs tap-to-click */
++static void
++force_tap_to_click (GtkBuilder *dialog)
++{
++	gtk_toggle_button_set_active (GTK_TOGGLE_BUTTON (gtk_builder_get_object (dialog, "tap_to_click_toggle")), TRUE);
++	gtk_widget_set_sensitive (WID ("tap_to_click_toggle"), FALSE);
++}
++
+ static void
+ synaptics_check_capabilities (GtkBuilder *dialog)
+ {
+@@ -183,6 +191,12 @@ synaptics_check_capabilities (GtkBuilder *dialog)
+ 	unsigned char *data;
+ 
+ 	display = gdk_display_get_default ();
++	if (!GDK_IS_X11_DISPLAY (display)) {
++		if (touchpad_lacks_left_button ())
++			force_tap_to_click (dialog);
++		return;
++	}
++
+ 	prop = XInternAtom (GDK_DISPLAY_XDISPLAY(display), "Synaptics Capabilities", True);
+ 	if (!prop)
+ 		return;
+@@ -204,10 +218,8 @@ synaptics_check_capabilities (GtkBuilder *dialog)
+ 					 &bytes_after, &data) == Success) && (realtype != None)) {
+ 			/* Property data is booleans for has_left, has_middle,
+ 			 * has_right, has_double, has_triple */
+-			if (!data[0]) {
+-				gtk_toggle_button_set_active (GTK_TOGGLE_BUTTON (gtk_builder_get_object (dialog, "tap_to_click_toggle")), TRUE);
+-				gtk_widget_set_sensitive (WID ("tap_to_click_toggle"), FALSE);
+-			}
++			if (!data[0])
++				force_tap_to_click (dialog);
+ 
+ 			XFree (data);
+ 		}
+diff --git a/capplets/mouse/msd-input-helper.c b/capplets/mouse/msd-input-helper.c
+index 7dc0d996c..460023474 100644
+--- a/capplets/mouse/msd-input-helper.c
++++ b/capplets/mouse/msd-input-helper.c
+@@ -22,12 +22,129 @@
+ 
+ #include <gdk/gdk.h>
+ #include <gdk/gdkx.h>
++#include <gio/gio.h>
+ 
+ #include <sys/types.h>
+ #include <X11/Xatom.h>
+ 
+ #include "msd-input-helper.h"
+ 
++/*
++ * Input devices without X
++ *
++ * Outside X11 (on Wayland) a client cannot list input devices; the compositor
++ * owns them. The session's compositor, or any other service that owns the
++ * input devices, can describe them on the session bus:
++ *
++ *   Bus name   org.mate.InputDevices
++ *   Object     /org/mate/InputDevices
++ *   Interface  org.mate.InputDevices1
++ *
++ *   GetDevices () -> (aa{sv} devices)
++ *     One dictionary per device:
++ *       "name"             s  human readable name
++ *       "type"             s  "keyboard", "pointer", "touchpad", "touchscreen",
++ *                             "tablet" or "other"
++ *       "has-left-button"  b  pointers and touchpads: whether the device can
++ *                             click with a left button (a clickpad can, as its
++ *                             surface clicks); false on a touchpad that can
++ *                             only tap
++ *     Unknown keys are ignored, so the list can grow.
++ *
++ * When nobody provides it the capplet behaves as on an X server without
++ * XInput: it assumes a touchpad may be present.
++ */
++#define INPUT_DEVICES_BUS_NAME  "org.mate.InputDevices"
++#define INPUT_DEVICES_PATH      "/org/mate/InputDevices"
++#define INPUT_DEVICES_INTERFACE "org.mate.InputDevices1"
++
++/* The devices as an aa{sv}, or NULL when nobody describes them. */
++static GVariant *
++input_devices_get (void)
++{
++        GDBusConnection *bus;
++        GVariant *reply;
++        GVariant *devices = NULL;
++
++        bus = g_bus_get_sync (G_BUS_TYPE_SESSION, NULL, NULL);
++        if (bus == NULL)
++                return NULL;
++
++        reply = g_dbus_connection_call_sync (bus,
++                                             INPUT_DEVICES_BUS_NAME,
++                                             INPUT_DEVICES_PATH,
++                                             INPUT_DEVICES_INTERFACE,
++                                             "GetDevices",
++                                             NULL,
++                                             G_VARIANT_TYPE ("(aa{sv})"),
++                                             G_DBUS_CALL_FLAGS_NO_AUTO_START,
++                                             1000, NULL, NULL);
++        if (reply != NULL) {
++                devices = g_variant_get_child_value (reply, 0);
++                g_variant_unref (reply);
++        }
++        g_object_unref (bus);
++
++        return devices;
++}
++
++static gboolean
++device_is_of_type (GVariant   *device,
++                   const char *type)
++{
++        const char *device_type;
++
++        return g_variant_lookup (device, "type", "&s", &device_type) &&
++               g_strcmp0 (device_type, type) == 0;
++}
++
++/* Without X: whether a touchpad is listed; TRUE when nobody lists devices. */
++static gboolean
++input_devices_have_touchpad (void)
++{
++        GVariant *devices, *device;
++        GVariantIter iter;
++        gboolean found = FALSE;
++
++        devices = input_devices_get ();
++        if (devices == NULL)
++                return TRUE;
++
++        g_variant_iter_init (&iter, devices);
++        while (!found && (device = g_variant_iter_next_value (&iter)) != NULL) {
++                found = device_is_of_type (device, "touchpad");
++                g_variant_unref (device);
++        }
++        g_variant_unref (devices);
++
++        return found;
++}
++
++gboolean
++touchpad_lacks_left_button (void)
++{
++        GVariant *devices, *device;
++        GVariantIter iter;
++        gboolean lacks = FALSE;
++
++        devices = input_devices_get ();
++        if (devices == NULL)
++                return FALSE;
++
++        g_variant_iter_init (&iter, devices);
++        while (!lacks && (device = g_variant_iter_next_value (&iter)) != NULL) {
++                gboolean has_left_button;
++
++                if (device_is_of_type (device, "touchpad") &&
++                    g_variant_lookup (device, "has-left-button", "b", &has_left_button))
++                        lacks = !has_left_button;
++                g_variant_unref (device);
++        }
++        g_variant_unref (devices);
++
++        return lacks;
++}
++
+ gboolean
+ supports_xinput_devices (void)
+ {
+@@ -100,6 +217,9 @@ touchpad_is_present (void)
+         guint i;
+         gboolean retval;
+ 
++        if (!GDK_IS_X11_DISPLAY (gdk_display_get_default ()))
++                return input_devices_have_touchpad ();
++
+         if (supports_xinput_devices () == FALSE)
+                 return TRUE;
+ 
+diff --git a/capplets/mouse/msd-input-helper.h b/capplets/mouse/msd-input-helper.h
+index e46c97e1b..294a42d41 100644
+--- a/capplets/mouse/msd-input-helper.h
++++ b/capplets/mouse/msd-input-helper.h
+@@ -30,6 +30,8 @@ G_BEGIN_DECLS
+ gboolean  supports_xinput_devices (void);
+ XDevice  *device_is_touchpad      (XDeviceInfo *deviceinfo);
+ gboolean  touchpad_is_present     (void);
++/* Without X: whether a listed touchpad cannot click (tap only) */
++gboolean  touchpad_lacks_left_button (void);
+ 
+ G_END_DECLS
+ 
+
+From 8c1af79b8b496e3067b81b9bfcd5b2fecf82338a Mon Sep 17 00:00:00 2001
+From: KeremSoke <keremsoke@gmail.com>
+Date: Fri, 13 Nov 2026 19:42:44 -0700
+Subject: [PATCH 2/2] mouse: hide Sensitivity where libinput drives the devices
+
+---
+ capplets/mouse/mate-mouse-properties.c | 10 ++++
+ capplets/mouse/msd-input-helper.c      | 73 ++++++++++++++++++++++++++
+ capplets/mouse/msd-input-helper.h      |  2 +
+ 3 files changed, 85 insertions(+)
+
+diff --git a/capplets/mouse/mate-mouse-properties.c b/capplets/mouse/mate-mouse-properties.c
+index f3acf21b3..17c6875f2 100644
+--- a/capplets/mouse/mate-mouse-properties.c
++++ b/capplets/mouse/mate-mouse-properties.c
+@@ -320,6 +320,12 @@ setup_dialog (GtkBuilder *dialog)
+ 	                 gtk_range_get_adjustment (GTK_RANGE (gtk_builder_get_object (dialog, "sensitivity_scale"))), "value",
+ 	                 G_SETTINGS_BIND_DEFAULT);
+ 
++	/* Hide the threshold where libinput drives the mice: it has none */
++	if (pointer_threshold_ignored (FALSE)) {
++		gtk_widget_hide (WID ("sensitivity_label"));
++		gtk_widget_hide (WID ("hbox3"));
++	}
++
+ 	g_signal_connect (WID ("mouse_accel_profile"), "changed",
+ 			  G_CALLBACK (accel_profile_combobox_changed_callback),
+ 	                  NULL);
+@@ -395,6 +401,10 @@ setup_dialog (GtkBuilder *dialog)
+ 		g_settings_bind (touchpad_settings, "motion-threshold",
+ 		                 gtk_range_get_adjustment (GTK_RANGE (gtk_builder_get_object (dialog, "touchpad_sensitivity_scale"))), "value",
+ 		                 G_SETTINGS_BIND_DEFAULT);
++		if (pointer_threshold_ignored (TRUE)) {
++			gtk_widget_hide (WID ("touchpad_sensitivity_label"));
++			gtk_widget_hide (WID ("hbox31"));
++		}
+ 
+ 		synaptics_check_capabilities (dialog);
+ 	}
+diff --git a/capplets/mouse/msd-input-helper.c b/capplets/mouse/msd-input-helper.c
+index 460023474..df6412c72 100644
+--- a/capplets/mouse/msd-input-helper.c
++++ b/capplets/mouse/msd-input-helper.c
+@@ -24,6 +24,7 @@
+ #include <gdk/gdkx.h>
+ #include <gio/gio.h>
+ 
++#include <string.h>
+ #include <sys/types.h>
+ #include <X11/Xatom.h>
+ 
+@@ -209,6 +210,78 @@ device_is_touchpad (XDeviceInfo *deviceinfo)
+         return NULL;
+ }
+ 
++static gboolean
++device_is_driven_by_libinput (XDeviceInfo *deviceinfo)
++{
++        GdkDisplay *display = gdk_display_get_default ();
++        XDevice *device;
++        gboolean libinput;
++
++        /* Xwayland's devices stand for the compositor's, which use libinput */
++        if (g_str_has_prefix (deviceinfo->name, "xwayland-"))
++                return TRUE;
++
++        gdk_x11_display_error_trap_push (display);
++        device = XOpenDevice (GDK_DISPLAY_XDISPLAY (display), deviceinfo->id);
++        if (gdk_x11_display_error_trap_pop (display) || (device == NULL))
++                return FALSE;
++
++        /* xf86-input-libinput sets this on every device it drives */
++        libinput = device_has_property (device, "libinput Send Events Modes Available");
++        XCloseDevice (GDK_DISPLAY_XDISPLAY (display), device);
++
++        return libinput;
++}
++
++/*
++ * libinput has no motion threshold, only an acceleration speed and profile,
++ * so the threshold setting does nothing for devices it drives: always outside
++ * X11, and under X11 with xf86-input-libinput. Under X11 the answer is TRUE
++ * only when there is at least one such pointer and all of them use libinput;
++ * a device on evdev or synaptics still honours the threshold.
++ */
++gboolean
++pointer_threshold_ignored (gboolean touchpads)
++{
++        GdkDisplay *display = gdk_display_get_default ();
++        Atom touchpad_type;
++        XDeviceInfo *device_info;
++        gint n_devices, i;
++        gint n_matching = 0;
++        gboolean all_libinput = TRUE;
++
++        if (!GDK_IS_X11_DISPLAY (display))
++                return TRUE;
++
++        if (supports_xinput_devices () == FALSE)
++                return FALSE;
++
++        touchpad_type = XInternAtom (GDK_DISPLAY_XDISPLAY (display), XI_TOUCHPAD, True);
++        device_info = XListInputDevices (GDK_DISPLAY_XDISPLAY (display), &n_devices);
++        if (device_info == NULL)
++                return FALSE;
++
++        for (i = 0; i < n_devices && all_libinput; i++) {
++                gboolean is_touchpad;
++
++                if (device_info[i].use != IsXExtensionPointer)
++                        continue;
++                /* The XTEST pointer is a virtual device of the X server */
++                if (strstr (device_info[i].name, "XTEST") != NULL)
++                        continue;
++
++                is_touchpad = touchpad_type != None && device_info[i].type == touchpad_type;
++                if (is_touchpad != touchpads)
++                        continue;
++
++                n_matching++;
++                all_libinput = device_is_driven_by_libinput (&device_info[i]);
++        }
++        XFreeDeviceList (device_info);
++
++        return n_matching > 0 && all_libinput;
++}
++
+ gboolean
+ touchpad_is_present (void)
+ {
+diff --git a/capplets/mouse/msd-input-helper.h b/capplets/mouse/msd-input-helper.h
+index 294a42d41..416a80e53 100644
+--- a/capplets/mouse/msd-input-helper.h
++++ b/capplets/mouse/msd-input-helper.h
+@@ -32,6 +32,8 @@ XDevice  *device_is_touchpad      (XDeviceInfo *deviceinfo);
+ gboolean  touchpad_is_present     (void);
+ /* Without X: whether a listed touchpad cannot click (tap only) */
+ gboolean  touchpad_lacks_left_button (void);
++/* Whether the touchpads (or the other pointers) ignore a motion threshold */
++gboolean  pointer_threshold_ignored (gboolean touchpads);
+ 
+ G_END_DECLS
+ 

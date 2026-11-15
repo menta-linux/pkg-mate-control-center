@@ -4,3 +4,4 @@
 3002-keybindings-fix-crashes-on-wayland.patch
 3003-keyboard-dont-crash-on-wayland.patch
 3004-typing-break-work-on-wayland.patch
+3005-mouse-dont-crash-and-work-on-wayland.patch

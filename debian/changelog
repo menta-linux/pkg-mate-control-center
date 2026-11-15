@@ -1,3 +1,10 @@
+mate-control-center (1.28.2-1menta2) unstable; urgency=medium
+
+  * Add mate-control-center PR 842: mouse capplet no longer crashes on
+    Wayland (3005).
+
+ -- Menta Linux <packages@menta-linux.invalid>  Sat, 14 Nov 2026 18:40:34 -0700
+
 mate-control-center (1.28.2-1menta1) unstable; urgency=medium
 
   * Menta Linux rebuild: new upstream release 1.28.2.
