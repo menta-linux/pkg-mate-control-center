@@ -50,7 +50,7 @@ jobs:
           set -o pipefail
           {
             mkdir -p /tmp/menta-debs
-            for r in mate-desktop mate-settings-daemon; do
+            for r in mate-desktop mate-settings-daemon marco; do
               gh release download latest -R "menta-linux/pkg-$r" -p '*.deb' -D /tmp/menta-debs --clobber
             done
             rm -f /tmp/menta-debs/*dbgsym*.deb
