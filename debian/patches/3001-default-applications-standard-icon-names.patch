@@ -1,0 +1,45 @@
+Description: default-applications: Use standard icon names
+Author: Balló György
+Origin: other, https://github.com/mate-desktop/mate-control-center/pull/832
+Forwarded: https://github.com/mate-desktop/mate-control-center/pull/832
+
+diff --git a/capplets/default-applications/mate-default-applications-properties.ui b/capplets/default-applications/mate-default-applications-properties.ui
+index 20c094f..2dee123 100644
+--- a/capplets/default-applications/mate-default-applications-properties.ui
++++ b/capplets/default-applications/mate-default-applications-properties.ui
+@@ -566,7 +566,7 @@
+                             <property name="visible">True</property>
+                             <property name="can_focus">False</property>
+                             <property name="valign">start</property>
+-                            <property name="icon_name">text-editor</property>
++                            <property name="icon_name">accessories-text-editor</property>
+                             <property name="icon_size">5</property>
+                           </object>
+                           <packing>
+@@ -636,7 +636,7 @@
+                             <property name="visible">True</property>
+                             <property name="can_focus">False</property>
+                             <property name="valign">start</property>
+-                            <property name="icon_name">terminal</property>
++                            <property name="icon_name">utilities-terminal</property>
+                             <property name="icon_size">5</property>
+                           </object>
+                           <packing>
+@@ -706,7 +706,7 @@
+                             <property name="visible">True</property>
+                             <property name="can_focus">False</property>
+                             <property name="valign">start</property>
+-                            <property name="icon_name">file-manager</property>
++                            <property name="icon_name">system-file-manager</property>
+                             <property name="icon_size">5</property>
+                           </object>
+                           <packing>
+@@ -1102,7 +1102,7 @@
+                             <property name="visible">True</property>
+                             <property name="can_focus">False</property>
+                             <property name="valign">start</property>
+-                            <property name="icon_name">zoom-best-fit</property>
++                            <property name="icon_name">zoom-fit-best</property>
+                             <property name="icon_size">5</property>
+                           </object>
+                           <packing>

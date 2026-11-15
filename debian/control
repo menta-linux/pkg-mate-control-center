@@ -37,6 +37,10 @@ Build-Depends: debhelper-compat (= 14),
                xsltproc,
                yelp-tools,
                libudisks2-dev,
+               libwayland-bin,
+               libwayland-dev,
+               meson,
+               wayland-protocols (>= 1.27),
                libayatana-appindicator3-dev,
 Standards-Version: 4.7.4
 Homepage: http://www.mate-desktop.org/

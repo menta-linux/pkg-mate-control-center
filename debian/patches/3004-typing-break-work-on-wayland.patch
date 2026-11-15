@@ -1,0 +1,598 @@
+Description: typing-break: work on Wayland
+Author: KeremSoke
+Origin: other, https://github.com/mate-desktop/mate-control-center/pull/841
+Forwarded: https://github.com/mate-desktop/mate-control-center/pull/841
+
+diff --git a/typing-break/Makefile.am b/typing-break/Makefile.am
+index 5290b04..f018ecb 100644
+--- a/typing-break/Makefile.am
++++ b/typing-break/Makefile.am
+@@ -33,6 +33,9 @@ if HAVE_LIBCANBERRA_GTK
+   mate_typing_monitor_LDADD += @LIBCANBERRA_GTK_LIBS@
+ endif
+ 
++# Built by meson only (Wayland idle monitoring)
++EXTRA_DIST = drw-idle-wayland.c drw-idle-wayland.h
++
+ imagedir = $(pkgdatadir)/pixmaps
+ dist_image_DATA = bar.png bar-red.png bar-green.png bar-disabled.png ocean-stripes.png
+ 
+diff --git a/typing-break/drw-break-window.c b/typing-break/drw-break-window.c
+index 9e51ac6..aec7a0a 100644
+--- a/typing-break/drw-break-window.c
++++ b/typing-break/drw-break-window.c
+@@ -126,6 +126,7 @@ drw_break_window_init (DrwBreakWindow *window)
+ 	gint                   right_padding;
+ 	gint                   bottom_padding;
+ 	gint                   scale;
++	gint                   screen_width, screen_height;
+ 	GSettings             *settings;
+ 
+ 	priv = drw_break_window_get_instance_private (window);
+@@ -148,16 +149,15 @@ drw_break_window_init (DrwBreakWindow *window)
+ 
+ 	gdk_monitor_get_geometry (gdk_display_get_monitor (display, root_monitor), &monitor);
+ 
+-	gtk_window_set_default_size (GTK_WINDOW (window),
+-				     WidthOfScreen (gdk_x11_screen_get_xscreen (screen)) / scale,
+-				     HeightOfScreen (gdk_x11_screen_get_xscreen (screen)) / scale);
++	drw_get_screen_size (screen, scale, &screen_width, &screen_height);
++	gtk_window_set_default_size (GTK_WINDOW (window), screen_width, screen_height);
+ 
+ 	gtk_window_set_decorated (GTK_WINDOW (window), FALSE);
+ 	gtk_widget_set_app_paintable (GTK_WIDGET (window), TRUE);
+ 	drw_setup_background (GTK_WIDGET (window));
+ 
+-	right_padding = WidthOfScreen (gdk_x11_screen_get_xscreen (screen)) / scale - monitor.width - monitor.x;
+-	bottom_padding = HeightOfScreen (gdk_x11_screen_get_xscreen (screen)) / scale - monitor.height - monitor.y;
++	right_padding = screen_width - monitor.width - monitor.x;
++	bottom_padding = screen_height - monitor.height - monitor.y;
+ 
+ 	outer_vbox = gtk_box_new (GTK_ORIENTATION_VERTICAL, 0);
+ 	gtk_widget_set_hexpand (outer_vbox, TRUE);
+diff --git a/typing-break/drw-idle-wayland.c b/typing-break/drw-idle-wayland.c
+new file mode 100644
+index 0000000..8c9db6a
+--- /dev/null
++++ b/typing-break/drw-idle-wayland.c
+@@ -0,0 +1,153 @@
++/*
++ * Copyright (C) 2026 MATE Developers
++ *
++ * This program is free software; you can redistribute it and/or
++ * modify it under the terms of the GNU General Public License as
++ * published by the Free Software Foundation; either version 2 of the
++ * License, or (at your option) any later version.
++ *
++ * This program is distributed in the hope that it will be useful,
++ * but WITHOUT ANY WARRANTY; without even the implied warranty of
++ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
++ * General Public License for more details.
++ *
++ * You should have received a copy of the GNU General Public License
++ * along with this program; if not, write to the Free Software
++ * Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA
++ * 02110-1301, USA.
++ */
++
++#include <config.h>
++#include <string.h>
++#include <gdk/gdk.h>
++#include <gdk/gdkwayland.h>
++#include <wayland-client.h>
++
++#include "ext-idle-notify-v1-client-protocol.h"
++#include "drw-idle-wayland.h"
++
++struct _DrwIdleWayland {
++	struct wl_registry              *registry;
++	struct ext_idle_notifier_v1     *notifier;
++	struct ext_idle_notification_v1 *notification;
++	guint32                          notifier_version;
++	gboolean                         idle;
++};
++
++static void
++registry_global (void               *data,
++		 struct wl_registry *registry,
++		 uint32_t            name,
++		 const char         *interface,
++		 uint32_t            version)
++{
++	DrwIdleWayland *idle = data;
++
++	if (strcmp (interface, ext_idle_notifier_v1_interface.name) == 0) {
++		idle->notifier_version = MIN (version, 2);
++		idle->notifier = wl_registry_bind (registry, name,
++						   &ext_idle_notifier_v1_interface,
++						   idle->notifier_version);
++	}
++}
++
++static void
++registry_global_remove (void               *data,
++			struct wl_registry *registry,
++			uint32_t            name)
++{
++}
++
++static const struct wl_registry_listener registry_listener = {
++	registry_global,
++	registry_global_remove
++};
++
++static void
++notification_idled (void                            *data,
++		    struct ext_idle_notification_v1 *notification)
++{
++	DrwIdleWayland *idle = data;
++
++	idle->idle = TRUE;
++}
++
++static void
++notification_resumed (void                            *data,
++		      struct ext_idle_notification_v1 *notification)
++{
++	DrwIdleWayland *idle = data;
++
++	idle->idle = FALSE;
++}
++
++static const struct ext_idle_notification_v1_listener notification_listener = {
++	notification_idled,
++	notification_resumed
++};
++
++DrwIdleWayland *
++drw_idle_wayland_new (guint timeout_ms)
++{
++	GdkDisplay        *display = gdk_display_get_default ();
++	struct wl_display *wl_display;
++	struct wl_seat    *wl_seat;
++	DrwIdleWayland    *idle;
++
++	if (!GDK_IS_WAYLAND_DISPLAY (display))
++		return NULL;
++
++	wl_display = gdk_wayland_display_get_wl_display (display);
++	wl_seat = gdk_wayland_seat_get_wl_seat (gdk_display_get_default_seat (display));
++	if (wl_seat == NULL)
++		return NULL;
++
++	idle = g_new0 (DrwIdleWayland, 1);
++
++	idle->registry = wl_display_get_registry (wl_display);
++	wl_registry_add_listener (idle->registry, &registry_listener, idle);
++	wl_display_roundtrip (wl_display);
++
++	if (idle->notifier == NULL) {
++		drw_idle_wayland_free (idle);
++		return NULL;
++	}
++
++	/* Version 2 can ignore idle inhibitors (a playing video) so only input
++	 * counts for typing breaks. */
++#ifdef EXT_IDLE_NOTIFIER_V1_GET_INPUT_IDLE_NOTIFICATION_SINCE_VERSION
++	if (idle->notifier_version >= EXT_IDLE_NOTIFIER_V1_GET_INPUT_IDLE_NOTIFICATION_SINCE_VERSION)
++		idle->notification = ext_idle_notifier_v1_get_input_idle_notification (idle->notifier,
++											timeout_ms,
++											wl_seat);
++	else
++#endif
++		idle->notification = ext_idle_notifier_v1_get_idle_notification (idle->notifier,
++										  timeout_ms,
++										  wl_seat);
++	ext_idle_notification_v1_add_listener (idle->notification, &notification_listener, idle);
++	wl_display_flush (wl_display);
++
++	return idle;
++}
++
++gboolean
++drw_idle_wayland_is_idle (DrwIdleWayland *idle)
++{
++	return idle->idle;
++}
++
++void
++drw_idle_wayland_free (DrwIdleWayland *idle)
++{
++	if (idle == NULL)
++		return;
++
++	if (idle->notification)
++		ext_idle_notification_v1_destroy (idle->notification);
++	if (idle->notifier)
++		ext_idle_notifier_v1_destroy (idle->notifier);
++	if (idle->registry)
++		wl_registry_destroy (idle->registry);
++	g_free (idle);
++}
+diff --git a/typing-break/drw-idle-wayland.h b/typing-break/drw-idle-wayland.h
+new file mode 100644
+index 0000000..5a44128
+--- /dev/null
++++ b/typing-break/drw-idle-wayland.h
+@@ -0,0 +1,34 @@
++/*
++ * Copyright (C) 2026 MATE Developers
++ *
++ * This program is free software; you can redistribute it and/or
++ * modify it under the terms of the GNU General Public License as
++ * published by the Free Software Foundation; either version 2 of the
++ * License, or (at your option) any later version.
++ *
++ * This program is distributed in the hope that it will be useful,
++ * but WITHOUT ANY WARRANTY; without even the implied warranty of
++ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
++ * General Public License for more details.
++ *
++ * You should have received a copy of the GNU General Public License
++ * along with this program; if not, write to the Free Software
++ * Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA
++ * 02110-1301, USA.
++ */
++
++#ifndef __DRW_IDLE_WAYLAND_H__
++#define __DRW_IDLE_WAYLAND_H__
++
++#include <glib.h>
++
++/* Input idle state on Wayland, from ext-idle-notify-v1. */
++typedef struct _DrwIdleWayland DrwIdleWayland;
++
++/* NULL when the display is not Wayland or the compositor lacks the protocol.
++ * The user is "idle" after timeout_ms without input. */
++DrwIdleWayland *drw_idle_wayland_new     (guint           timeout_ms);
++gboolean        drw_idle_wayland_is_idle (DrwIdleWayland *idle);
++void            drw_idle_wayland_free    (DrwIdleWayland *idle);
++
++#endif /* __DRW_IDLE_WAYLAND_H__ */
+diff --git a/typing-break/drw-monitor.c b/typing-break/drw-monitor.c
+index bd103a4..5df4c09 100644
+--- a/typing-break/drw-monitor.c
++++ b/typing-break/drw-monitor.c
+@@ -34,6 +34,12 @@
+ #include <X11/Xlib.h>
+ #include <X11/extensions/scrnsaver.h>
+ #include "drw-monitor.h"
++#ifdef HAVE_WAYLAND_IDLE
++#include "drw-idle-wayland.h"
++#endif
++
++/* How often the idle state is checked, in seconds */
++#define POLL_INTERVAL 3
+ 
+ struct _DrwMonitorPriv {
+ 	XScreenSaverInfo *ss_info;
+@@ -41,6 +47,9 @@ struct _DrwMonitorPriv {
+ 	unsigned long     last_idle;
+ 
+ 	time_t            last_activity;
++#ifdef HAVE_WAYLAND_IDLE
++	DrwIdleWayland   *wl_idle;
++#endif
+ };
+ 
+ /* Signals */
+@@ -122,12 +131,17 @@ drw_monitor_finalize (GObject *object)
+ 
+         priv = monitor->priv;
+ 
+-	g_source_remove (priv->timeout_id);
+-	priv->timeout_id = 0;
++	if (priv->timeout_id != 0) {
++		g_source_remove (priv->timeout_id);
++		priv->timeout_id = 0;
++	}
+ 
+ 	if (priv->ss_info) {
+ 		XFree (priv->ss_info);
+ 	}
++#ifdef HAVE_WAYLAND_IDLE
++	drw_idle_wayland_free (priv->wl_idle);
++#endif
+ 
+ 	g_free (priv);
+ 	monitor->priv = NULL;
+@@ -145,6 +159,25 @@ drw_monitor_timeout (DrwMonitor *monitor)
+ 
+ 	priv = monitor->priv;
+ 
++#ifdef HAVE_WAYLAND_IDLE
++	if (priv->wl_idle != NULL) {
++		/* The compositor says "idle" after POLL_INTERVAL seconds without
++		 * input, so not idle means there was input since the last check:
++		 * the same as the X idle time going down. */
++		if (!drw_idle_wayland_is_idle (priv->wl_idle)) {
++			now = time (NULL);
++
++			if (now - priv->last_activity < 25) {
++				g_signal_emit (monitor, signals[ACTIVITY], 0, NULL);
++			}
++
++			priv->last_activity = now;
++		}
++
++		return TRUE;
++	}
++#endif
++
+ 	if (XScreenSaverQueryInfo (GDK_DISPLAY_XDISPLAY(gdk_display_get_default()), DefaultRootWindow (GDK_DISPLAY_XDISPLAY(gdk_display_get_default())), priv->ss_info) != 0) {
+ 		if (priv->ss_info->idle < priv->last_idle) {
+  			now = time (NULL);
+@@ -162,6 +195,18 @@ drw_monitor_timeout (DrwMonitor *monitor)
+ 	return TRUE;
+ }
+ 
++static gboolean
++start_wayland_idle (DrwMonitorPriv *priv)
++{
++#ifdef HAVE_WAYLAND_IDLE
++	priv->wl_idle = drw_idle_wayland_new (POLL_INTERVAL * 1000);
++
++	return priv->wl_idle != NULL;
++#else
++	return FALSE;
++#endif
++}
++
+ static gboolean
+ drw_monitor_setup (DrwMonitor *monitor)
+ {
+@@ -171,6 +216,20 @@ drw_monitor_setup (DrwMonitor *monitor)
+ 
+ 	priv = monitor->priv;
+ 
++	if (!GDK_IS_X11_DISPLAY (gdk_display_get_default ())) {
++		/* No X screensaver extension: ask the Wayland compositor. */
++		if (!start_wayland_idle (priv)) {
++			g_message ("Typing activity can't be monitored: no X server, "
++				   "and the compositor offers no ext-idle-notify-v1");
++			return FALSE;
++		}
++
++		priv->last_activity = time (NULL);
++		priv->timeout_id = g_timeout_add_seconds (POLL_INTERVAL, (GSourceFunc) drw_monitor_timeout, monitor);
++
++		return TRUE;
++	}
++
+ 	if (!XScreenSaverQueryExtension (GDK_DISPLAY_XDISPLAY(gdk_display_get_default()), &event_base, &error_base)) {
+ 		return FALSE;
+ 	}
+@@ -179,7 +238,7 @@ drw_monitor_setup (DrwMonitor *monitor)
+ 
+ 	priv->last_activity = time (NULL);
+ 
+-	priv->timeout_id = g_timeout_add_seconds (3, (GSourceFunc) drw_monitor_timeout, monitor);
++	priv->timeout_id = g_timeout_add_seconds (POLL_INTERVAL, (GSourceFunc) drw_monitor_timeout, monitor);
+ 
+ 	return TRUE;
+ }
+diff --git a/typing-break/drw-selection.c b/typing-break/drw-selection.c
+index 3145440..d6a525f 100644
+--- a/typing-break/drw-selection.c
++++ b/typing-break/drw-selection.c
+@@ -31,8 +31,12 @@ struct _DrwSelection
+ {
+ 	GdkWindow *owner_window;
+ 	GtkWidget *invisible;
++	GDBusConnection *bus; /* off X11: holds the single instance name */
++	gboolean   is_master;
+ };
+ 
++#define INSTANCE_BUS_NAME "org.mate.TypingMonitor"
++
+ #define SELECTION_NAME "_CODEFACTORY_DRWRIGHT"
+ 
+ static GdkFilterReturn drw_selection_filter     (GdkXEvent   *xevent,
+@@ -166,13 +170,46 @@ drw_selection_filter (GdkXEvent *xevent,
+ 	return GDK_FILTER_CONTINUE;
+ }
+ 
++/* There is no X selection to claim on Wayland: use a session bus name. */
++static void
++drw_selection_claim_bus_name (DrwSelection *drw_selection)
++{
++	GVariant *reply;
++
++	/* No bus: nothing to arbitrate with, so run as the only instance. */
++	drw_selection->is_master = TRUE;
++	drw_selection->bus = g_bus_get_sync (G_BUS_TYPE_SESSION, NULL, NULL);
++	if (drw_selection->bus == NULL)
++		return;
++
++	/* RequestName with DBUS_NAME_FLAG_DO_NOT_QUEUE (4); reply 1 is primary owner */
++	reply = g_dbus_connection_call_sync (drw_selection->bus,
++					     "org.freedesktop.DBus",
++					     "/org/freedesktop/DBus",
++					     "org.freedesktop.DBus",
++					     "RequestName",
++					     g_variant_new ("(su)", INSTANCE_BUS_NAME, 4),
++					     G_VARIANT_TYPE ("(u)"),
++					     G_DBUS_CALL_FLAGS_NONE,
++					     -1, NULL, NULL);
++	if (reply != NULL) {
++		guint32 result;
++
++		g_variant_get (reply, "(u)", &result);
++		drw_selection->is_master = (result == 1 || result == 4);
++		g_variant_unref (reply);
++	}
++}
++
+ DrwSelection *
+ drw_selection_start (void)
+ {
+-	DrwSelection *drw_selection = g_new (DrwSelection, 1);
++	DrwSelection *drw_selection = g_new0 (DrwSelection, 1);
+ 
+-	drw_selection->owner_window = NULL;
+-	drw_selection->invisible = NULL;
++	if (!GDK_IS_X11_DISPLAY (gdk_display_get_default ())) {
++		drw_selection_claim_bus_name (drw_selection);
++		return drw_selection;
++	}
+ 
+ 	drw_selection_negotiate (drw_selection);
+ 
+@@ -183,11 +220,15 @@ void
+ drw_selection_stop (DrwSelection *drw_selection)
+ {
+ 	drw_selection_reset (drw_selection);
++	g_clear_object (&drw_selection->bus);
+ 	g_free (drw_selection);
+ }
+ 
+ gboolean
+ drw_selection_is_master (DrwSelection *drw_selection)
+ {
++	if (drw_selection->bus != NULL || drw_selection->is_master)
++		return drw_selection->is_master;
++
+ 	return drw_selection->invisible != NULL;
+ }
+diff --git a/typing-break/drw-utils.c b/typing-break/drw-utils.c
+index c70806a..52a13c0 100644
+--- a/typing-break/drw-utils.c
++++ b/typing-break/drw-utils.c
+@@ -90,6 +90,35 @@ create_tile_pixbuf (GdkPixbuf    *dest_pixbuf,
+ 	return dest_pixbuf;
+ }
+ 
++/* Size of the screen in logical pixels. An X screen is in device pixels, so it
++ * is divided by the scale; elsewhere (Wayland) use the monitors' bounding box. */
++void
++drw_get_screen_size (GdkScreen *screen,
++		     gint       scale,
++		     gint      *width,
++		     gint      *height)
++{
++	GdkDisplay *display = gdk_screen_get_display (screen);
++
++	if (GDK_IS_X11_DISPLAY (display)) {
++		*width = WidthOfScreen (gdk_x11_screen_get_xscreen (screen)) / scale;
++		*height = HeightOfScreen (gdk_x11_screen_get_xscreen (screen)) / scale;
++	} else {
++		gint n_monitors = gdk_display_get_n_monitors (display);
++		gint i;
++
++		*width = 0;
++		*height = 0;
++		for (i = 0; i < n_monitors; i++) {
++			GdkRectangle geometry;
++
++			gdk_monitor_get_geometry (gdk_display_get_monitor (display, i), &geometry);
++			*width = MAX (*width, geometry.x + geometry.width);
++			*height = MAX (*height, geometry.y + geometry.height);
++		}
++	}
++}
++
+ static gboolean
+ window_draw_event   (GtkWidget      *widget,
+ 		     cairo_t        *cr,
+@@ -128,8 +157,7 @@ set_pixmap_background (GtkWidget *window)
+ 
+ 	screen = gtk_widget_get_screen (window);
+ 	scale = gtk_widget_get_scale_factor (window);
+-	width = WidthOfScreen (gdk_x11_screen_get_xscreen (screen)) / scale;
+-	height = HeightOfScreen (gdk_x11_screen_get_xscreen (screen)) / scale;
++	drw_get_screen_size (screen, scale, &width, &height);
+ 
+ 	tmp_pixbuf = gdk_pixbuf_get_from_window (gdk_screen_get_root_window (screen),
+ 						 0,
+diff --git a/typing-break/drw-utils.h b/typing-break/drw-utils.h
+index 949fe4e..4b9c2f2 100644
+--- a/typing-break/drw-utils.h
++++ b/typing-break/drw-utils.h
+@@ -24,6 +24,7 @@
+ #include <gtk/gtk.h>
+ 
+ void drw_setup_background (GtkWidget *window);
++void drw_get_screen_size  (GdkScreen *screen, gint scale, gint *width, gint *height);
+ 
+ 
+ #endif /* __DRW_UTILS_H__ */
+diff --git a/typing-break/drwright.c b/typing-break/drwright.c
+index 8230611..cf418d5 100644
+--- a/typing-break/drwright.c
++++ b/typing-break/drwright.c
+@@ -532,6 +532,7 @@ create_secondary_break_windows (void)
+ 	GtkWidget  *window;
+ 	GList      *windows = NULL;
+ 	gint        scale;
++	gint        screen_width, screen_height;
+ 
+ 	display = gdk_display_get_default ();
+ 
+@@ -547,9 +548,8 @@ create_secondary_break_windows (void)
+ 
+ 		gtk_window_set_screen (GTK_WINDOW (window), screen);
+ 
+-		gtk_window_set_default_size (GTK_WINDOW (window),
+-					     WidthOfScreen (gdk_x11_screen_get_xscreen (screen)) / scale,
+-					     HeightOfScreen (gdk_x11_screen_get_xscreen (screen)) / scale);
++		drw_get_screen_size (screen, scale, &screen_width, &screen_height);
++		gtk_window_set_default_size (GTK_WINDOW (window), screen_width, screen_height);
+ 
+ 		gtk_widget_set_app_paintable (GTK_WIDGET (window), TRUE);
+ 		drw_setup_background (GTK_WIDGET (window));
+diff --git a/typing-break/meson.build b/typing-break/meson.build
+index 29033b9..8d36cf2 100644
+--- a/typing-break/meson.build
++++ b/typing-break/meson.build
+@@ -13,17 +13,42 @@ deps = [
+   m_dep
+ ]
+ deps += [appindicator_dep,ayatana_dep]
++
++sources = [
++  'drw-break-window.c',
++  'drw-monitor.c',
++  'drwright.c',
++  'drw-selection.c',
++  'drw-timer.c',
++  'drw-utils.c',
++  'main.c'
++]
++
++# Typing activity on Wayland comes from the compositor (ext-idle-notify-v1)
++wayland_client_dep = dependency('wayland-client', required : false)
++gtk_wayland_dep = dependency('gtk+-wayland-3.0', required : false)
++wayland_protocols_dep = dependency('wayland-protocols', version : '>= 1.27', required : false)
++wayland_scanner = find_program('wayland-scanner', native : true, required : false)
++
++if wayland_client_dep.found() and gtk_wayland_dep.found() and wayland_protocols_dep.found() and wayland_scanner.found()
++  idle_notify_xml = join_paths(wayland_protocols_dep.get_variable(pkgconfig : 'pkgdatadir'),
++                               'staging', 'ext-idle-notify', 'ext-idle-notify-v1.xml')
++  sources += custom_target('ext-idle-notify-v1-client-protocol.h',
++    input : idle_notify_xml,
++    output : 'ext-idle-notify-v1-client-protocol.h',
++    command : [wayland_scanner, 'client-header', '@INPUT@', '@OUTPUT@'])
++  sources += custom_target('ext-idle-notify-v1-protocol.c',
++    input : idle_notify_xml,
++    output : 'ext-idle-notify-v1-protocol.c',
++    command : [wayland_scanner, 'private-code', '@INPUT@', '@OUTPUT@'])
++  sources += 'drw-idle-wayland.c'
++  deps += wayland_client_dep
++  cflags += '-DHAVE_WAYLAND_IDLE'
++endif
++
+ executable(
+   'mate-typing-monitor',
+-  sources : [
+-    'drw-break-window.c',
+-    'drw-monitor.c',
+-    'drwright.c',
+-    'drw-selection.c',
+-    'drw-timer.c',
+-    'drw-utils.c',
+-    'main.c'
+-  ],
++  sources : sources,
+   include_directories : config_inc,
+   dependencies : deps,
+   c_args : cflags,

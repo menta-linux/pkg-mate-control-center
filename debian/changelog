@@ -1,3 +1,13 @@
+mate-control-center (1.28.2-1menta1) unstable; urgency=medium
+
+  * Menta Linux rebuild: new upstream release 1.28.2.
+  * Add patches from upstream PRs 832, 839, 840 and 841 (3001-3004).
+  * debian/rules: Build with meson (typing-break Wayland idle support is
+    meson-only); add wayland build-deps.
+  * debian/watch: Track GitHub releases.
+
+ -- Menta Linux <packages@menta-linux.invalid>  Sat, 14 Nov 2026 17:19:28 -0700
+
 mate-control-center (1.28.1-1) unstable; urgency=medium
 
   [ Sui Vue ]

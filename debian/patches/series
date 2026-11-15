@@ -1,2 +1,6 @@
 2001_appearance_support.patch
 2002-remove_obsolete_lock_button.patch
+3001-default-applications-standard-icon-names.patch
+3002-keybindings-fix-crashes-on-wayland.patch
+3003-keyboard-dont-crash-on-wayland.patch
+3004-typing-break-work-on-wayland.patch
