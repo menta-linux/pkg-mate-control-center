@@ -1,0 +1,3383 @@
+Description: capplets: add panel properties capplet (PR 845)
+Author: mate-desktop contributors
+Origin: https://github.com/mate-desktop/mate-control-center/pull/845
+Forwarded: not-needed
+---
+diff --git a/capplets/Makefile.am b/capplets/Makefile.am
+index cf6de1b3..46d0195f 100644
+--- a/capplets/Makefile.am
++++ b/capplets/Makefile.am
+@@ -8,6 +8,7 @@ SUBDIRS = \
+ 	keybindings \
+ 	mouse \
+ 	network \
++	panel \
+ 	windows \
+ 	about-me \
+ 	system-info
+@@ -25,6 +26,7 @@ DIST_SUBDIRS = \
+ 	keyboard \
+ 	mouse \
+ 	network \
++	panel \
+ 	time-admin \
+ 	windows \
+ 	display \
+diff --git a/capplets/meson.build b/capplets/meson.build
+index 015de1c3..30013c3b 100644
+--- a/capplets/meson.build
++++ b/capplets/meson.build
+@@ -8,6 +8,7 @@ subdir('keybindings')
+ subdir('keyboard')
+ subdir('mouse')
+ subdir('network')
++subdir('panel')
+ subdir('system-info')
+ subdir('time-admin')
+ subdir('windows')
+diff --git a/capplets/panel/Makefile.am b/capplets/panel/Makefile.am
+new file mode 100644
+index 00000000..65539c22
+--- /dev/null
++++ b/capplets/panel/Makefile.am
+@@ -0,0 +1,53 @@
++# This is used in MATECC_CAPPLETS_CFLAGS
++cappletname = panel
++
++bin_PROGRAMS = mate-panel-properties
++
++mate_panel_properties_LDADD = $(MATECC_CAPPLETS_LIBS)
++
++mate_panel_properties_SOURCES = \
++	mate-panel-properties.c \
++	pp-config.c \
++	pp-config.h \
++	pp-monitors.c \
++	pp-monitors.h \
++	pp-panel.c \
++	pp-panel.h \
++	pp-window.c \
++	pp-window.h
++
++check_PROGRAMS = test-panel-monitors
++TESTS = test-panel-monitors
++
++test_panel_monitors_LDADD = $(MATECC_CAPPLETS_LIBS)
++
++test_panel_monitors_SOURCES = \
++	test-panel-monitors.c \
++	pp-config.c \
++	pp-config.h \
++	pp-monitors.c \
++	pp-monitors.h \
++	pp-panel.c \
++	pp-panel.h \
++	pp-window.c \
++	pp-window.h
++
++desktopdir = $(datadir)/applications
++Desktop_in_files = mate-panel-properties.desktop.in
++desktop_DATA = $(Desktop_in_files:.desktop.in=.desktop)
++
++$(desktop_DATA): $(Desktop_in_files)
++if USE_NLS
++	$(AM_V_GEN) $(MSGFMT) --desktop --keyword= --keyword=Name --keyword=Comment --keyword=Keywords --template $< -d $(top_srcdir)/po -o $@
++else
++	$(AM_V_GEN) sed '/^# Translators/d' < $< > $@
++endif
++
++AM_CPPFLAGS =				\
++	$(WARN_CFLAGS)			\
++	$(MATECC_CAPPLETS_CFLAGS)
++
++CLEANFILES = $(MATECC_CAPPLETS_CLEANFILES) $(desktop_DATA)
++EXTRA_DIST = $(Desktop_in_files)
++
++-include $(top_srcdir)/git.mk
+diff --git a/capplets/panel/mate-panel-properties.c b/capplets/panel/mate-panel-properties.c
+new file mode 100644
+index 00000000..058a3f74
+--- /dev/null
++++ b/capplets/panel/mate-panel-properties.c
+@@ -0,0 +1,66 @@
++/*
++ * mate-panel-properties.c: entry point of the panel properties capplet
++ *
++ * Copyright (C) 2026 MATE Developers
++ *
++ * This program is free software; you can redistribute it and/or
++ * modify it under the terms of the GNU General Public License as
++ * published by the Free Software Foundation; either version 2 of the
++ * License, or (at your option) any later version.
++ */
++
++#include <config.h>
++
++#include <glib/gi18n.h>
++#include <gtk/gtk.h>
++
++#include "capplet-util.h"
++#include "pp-config.h"
++#include "pp-window.h"
++
++#if !GLIB_CHECK_VERSION (2, 74, 0)
++#define G_APPLICATION_DEFAULT_FLAGS G_APPLICATION_FLAGS_NONE
++#endif
++
++static void
++activate_cb (GApplication *application, gpointer user_data)
++{
++	GList *windows = gtk_application_get_windows (GTK_APPLICATION (application));
++
++	if (windows != NULL) {
++		gtk_window_present (GTK_WINDOW (windows->data));
++		return;
++	}
++
++	if (!pp_config_available ()) {
++		GtkWidget *dialog = gtk_message_dialog_new (NULL, 0, GTK_MESSAGE_ERROR, GTK_BUTTONS_CLOSE,
++							    "%s", _("MATE Panel is not installed"));
++
++		gtk_message_dialog_format_secondary_text (GTK_MESSAGE_DIALOG (dialog), "%s",
++							  _("The panel settings schemas could not be found."));
++		gtk_dialog_run (GTK_DIALOG (dialog));
++		gtk_widget_destroy (dialog);
++		return;
++	}
++
++	gtk_widget_show_all (pp_window_new (GTK_APPLICATION (application)));
++}
++
++int
++main (int argc, char **argv)
++{
++	GtkApplication *application;
++	int status;
++
++	capplet_init (NULL, &argc, &argv);
++
++	g_set_application_name (_("Panel Properties"));
++	gtk_window_set_default_icon_name ("mate-panel");
++
++	application = gtk_application_new ("org.mate.PanelProperties", G_APPLICATION_DEFAULT_FLAGS);
++	g_signal_connect (application, "activate", G_CALLBACK (activate_cb), NULL);
++	status = g_application_run (G_APPLICATION (application), argc, argv);
++	g_object_unref (application);
++
++	return status;
++}
+diff --git a/capplets/panel/mate-panel-properties.desktop.in b/capplets/panel/mate-panel-properties.desktop.in
+new file mode 100644
+index 00000000..0726127c
+--- /dev/null
++++ b/capplets/panel/mate-panel-properties.desktop.in
+@@ -0,0 +1,13 @@
++[Desktop Entry]
++Name=Panel
++Comment=Configure panels, their appearance and the items they contain
++Exec=mate-panel-properties
++# Translators: Do NOT translate or transliterate this text (this is an icon file name)!
++Icon=mate-panel
++Terminal=false
++Type=Application
++StartupNotify=true
++Categories=GTK;Settings;DesktopSettings;
++# Translators: Search terms to find this application. Do NOT translate or localize the semicolons! The list MUST also end with a semicolon!
++Keywords=mate-control-center;MATE;panel;taskbar;applet;launcher;dock;properties;preferences;
++OnlyShowIn=MATE;
+diff --git a/capplets/panel/meson.build b/capplets/panel/meson.build
+new file mode 100644
+index 00000000..f6ada149
+--- /dev/null
++++ b/capplets/panel/meson.build
+@@ -0,0 +1,36 @@
++desktop = 'mate-panel-properties.desktop'
++
++i18n.merge_file(
++  type: 'desktop',
++  input: desktop + '.in',
++  output: desktop,
++  po_dir: po_dir,
++  install: true,
++  install_dir: mcc_desktopdir
++)
++
++sources = files(
++  'mate-panel-properties.c',
++  'pp-config.c',
++  'pp-monitors.c',
++  'pp-panel.c',
++  'pp-window.c'
++)
++
++executable(
++  'mate-panel-properties',
++  sources : sources,
++  include_directories: config_inc,
++  dependencies : [common_deps, libcommon_dep],
++  c_args : cflags,
++  install : true,
++  install_dir : get_option('bindir')
++)
++
++test('panel-monitors', executable(
++  'test-panel-monitors',
++  sources : files('test-panel-monitors.c', 'pp-config.c', 'pp-monitors.c', 'pp-panel.c', 'pp-window.c'),
++  include_directories: config_inc,
++  dependencies : [common_deps, libcommon_dep],
++  c_args : cflags,
++))
+diff --git a/capplets/panel/pp-config.c b/capplets/panel/pp-config.c
+new file mode 100644
+index 00000000..64c484c3
+--- /dev/null
++++ b/capplets/panel/pp-config.c
+@@ -0,0 +1,957 @@
++/*
++ * pp-config.c: GSettings backed model of the MATE panel configuration
++ *
++ * Copyright (C) 2026 MATE Developers
++ *
++ * This program is free software; you can redistribute it and/or
++ * modify it under the terms of the GNU General Public License as
++ * published by the Free Software Foundation; either version 2 of the
++ * License, or (at your option) any later version.
++ */
++
++#include <config.h>
++
++#include <string.h>
++#include <glib/gi18n.h>
++#include <glib/gstdio.h>
++#include <gio/gdesktopappinfo.h>
++
++#include "pp-config.h"
++#include "pp-monitors.h"
++#include "pp-panel.h"
++
++#define GENERAL_SCHEMA    "org.mate.panel"
++#define TOPLEVEL_SCHEMA   "org.mate.panel.toplevel"
++#define BACKGROUND_SCHEMA "org.mate.panel.toplevel.background"
++#define OBJECT_SCHEMA     "org.mate.panel.object"
++#define TOPLEVEL_PATH     "/org/mate/panel/toplevels/"
++#define OBJECT_PATH       "/org/mate/panel/objects/"
++#define GENERAL_PATH      "/org/mate/panel/general/"
++
++#define ORIENT_TOP    1
++#define ORIENT_RIGHT  2
++#define ORIENT_BOTTOM 4
++#define ORIENT_LEFT   8
++
++#define MAX_MOVE_STEPS 3
++#define PANEL_RESTART_DELAY_MS 1000
++
++static GHashTable *applet_info = NULL;
++
++static GSettingsSchema *
++lookup_schema (const char *id)
++{
++	GSettingsSchemaSource *source = g_settings_schema_source_get_default ();
++
++	if (source == NULL)
++		return NULL;
++
++	return g_settings_schema_source_lookup (source, id, TRUE);
++}
++
++gboolean
++pp_config_available (void)
++{
++	const char *ids[] = { GENERAL_SCHEMA, TOPLEVEL_SCHEMA, BACKGROUND_SCHEMA, OBJECT_SCHEMA };
++	guint i;
++
++	for (i = 0; i < G_N_ELEMENTS (ids); i++) {
++		GSettingsSchema *schema = lookup_schema (ids[i]);
++
++		if (schema == NULL)
++			return FALSE;
++		g_settings_schema_unref (schema);
++	}
++
++	return TRUE;
++}
++
++gboolean
++pp_config_has_pack_keys (void)
++{
++	GSettingsSchema *schema = lookup_schema (OBJECT_SCHEMA);
++	gboolean result;
++
++	result = schema != NULL &&
++		 g_settings_schema_has_key (schema, "pack-type") &&
++		 g_settings_schema_has_key (schema, "pack-index");
++	g_clear_pointer (&schema, g_settings_schema_unref);
++
++	return result;
++}
++
++gboolean
++pp_config_locked_down (void)
++{
++	GSettings *general = pp_config_general ();
++	gboolean locked_down = g_settings_get_boolean (general, "locked-down");
++
++	g_object_unref (general);
++	return locked_down;
++}
++
++GSettings *
++pp_config_general (void)
++{
++	return g_settings_new_with_path (GENERAL_SCHEMA, GENERAL_PATH);
++}
++
++GSettings *
++pp_config_toplevel (const char *toplevel_id)
++{
++	char *path = g_strdup_printf (TOPLEVEL_PATH "%s/", toplevel_id);
++	GSettings *settings = g_settings_new_with_path (TOPLEVEL_SCHEMA, path);
++
++	g_free (path);
++	return settings;
++}
++
++GSettings *
++pp_config_background (const char *toplevel_id)
++{
++	char *path = g_strdup_printf (TOPLEVEL_PATH "%s/background/", toplevel_id);
++	GSettings *settings = g_settings_new_with_path (BACKGROUND_SCHEMA, path);
++
++	g_free (path);
++	return settings;
++}
++
++GSettings *
++pp_config_object (const char *object_id)
++{
++	char *path = g_strdup_printf (OBJECT_PATH "%s/", object_id);
++	GSettings *settings = g_settings_new_with_path (OBJECT_SCHEMA, path);
++
++	g_free (path);
++	return settings;
++}
++
++static void
++reset_settings (GSettings *settings)
++{
++	GSettingsSchema *schema = NULL;
++	char **keys;
++	int i;
++
++	g_object_get (settings, "settings-schema", &schema, NULL);
++	if (schema == NULL)
++		return;
++
++	keys = g_settings_schema_list_keys (schema);
++	for (i = 0; keys[i] != NULL; i++)
++		g_settings_reset (settings, keys[i]);
++
++	g_strfreev (keys);
++	g_settings_schema_unref (schema);
++}
++
++static void
++reset_object (const char *object_id)
++{
++	GSettings *settings = pp_config_object (object_id);
++
++	reset_settings (settings);
++	g_object_unref (settings);
++}
++
++static void
++reset_toplevel (const char *toplevel_id)
++{
++	GSettings *settings = pp_config_toplevel (toplevel_id);
++	GSettings *background = pp_config_background (toplevel_id);
++
++	reset_settings (settings);
++	reset_settings (background);
++	g_object_unref (settings);
++	g_object_unref (background);
++}
++
++static char **
++get_list (const char *key)
++{
++	GSettings *general = pp_config_general ();
++	char **list = g_settings_get_strv (general, key);
++
++	g_object_unref (general);
++	return list;
++}
++
++static void
++set_list (const char *key, GPtrArray *items)
++{
++	GSettings *general = pp_config_general ();
++
++	g_ptr_array_add (items, NULL);
++	g_settings_set_strv (general, key, (const char * const *) items->pdata);
++	g_ptr_array_remove_index (items, items->len - 1);
++	g_settings_sync ();
++	g_object_unref (general);
++}
++
++static void
++remove_from_list (const char *key, const char *id)
++{
++	char **list = get_list (key);
++	GPtrArray *items = g_ptr_array_new ();
++	int i;
++
++	for (i = 0; list[i] != NULL; i++) {
++		if (g_strcmp0 (list[i], id) != 0)
++			g_ptr_array_add (items, list[i]);
++	}
++
++	set_list (key, items);
++	g_ptr_array_unref (items);
++	g_strfreev (list);
++}
++
++static gboolean
++list_contains (char **list, const char *id)
++{
++	return list != NULL && g_strv_contains ((const char * const *) list, id);
++}
++
++static GHashTable *
++attached_toplevels (void)
++{
++	GHashTable *set = g_hash_table_new_full (g_str_hash, g_str_equal, g_free, NULL);
++	char **objects = get_list ("object-id-list");
++	int i;
++
++	for (i = 0; objects[i] != NULL; i++) {
++		GSettings *settings = pp_config_object (objects[i]);
++		char *attached = g_settings_get_string (settings, "attached-toplevel-id");
++
++		if (attached != NULL && attached[0] != '\0')
++			g_hash_table_add (set, attached);
++		else
++			g_free (attached);
++
++		g_object_unref (settings);
++	}
++
++	g_strfreev (objects);
++	return set;
++}
++
++char **
++pp_config_object_ids (void)
++{
++	return get_list ("object-id-list");
++}
++
++char **
++pp_config_toplevel_ids (void)
++{
++	char **all = get_list ("toplevel-id-list");
++	GHashTable *attached = attached_toplevels ();
++	GPtrArray *result = g_ptr_array_new ();
++	int i;
++
++	for (i = 0; all[i] != NULL; i++) {
++		if (!g_hash_table_contains (attached, all[i]))
++			g_ptr_array_add (result, g_strdup (all[i]));
++	}
++
++	g_ptr_array_add (result, NULL);
++	g_hash_table_unref (attached);
++	g_strfreev (all);
++
++	return (char **) g_ptr_array_free (result, FALSE);
++}
++
++static const char *
++orientation_name (int orientation)
++{
++	switch (orientation) {
++	case ORIENT_RIGHT:
++		return C_("Orientation", "Right");
++	case ORIENT_BOTTOM:
++		return C_("Orientation", "Bottom");
++	case ORIENT_LEFT:
++		return C_("Orientation", "Left");
++	default:
++		return C_("Orientation", "Top");
++	}
++}
++
++char *
++pp_config_toplevel_label (const char *toplevel_id, GPtrArray *monitors)
++{
++	GSettings *settings = pp_config_toplevel (toplevel_id);
++	char *name = g_settings_get_string (settings, "name");
++	int orientation = g_settings_get_enum (settings, "orientation");
++	int index = g_settings_get_int (settings, "monitor");
++	const PpMonitor *monitor = pp_monitors_lookup (monitors, index);
++	char *label;
++
++	if (name != NULL && name[0] != '\0') {
++		label = g_strdup (name);
++	} else {
++		char *where = monitor != NULL ? pp_monitor_label (monitor)
++					      : g_strdup_printf (_("Monitor %d"), index + 1);
++
++		label = g_strdup_printf (_("%s Panel, %s"), orientation_name (orientation), where);
++		g_free (where);
++	}
++
++	g_free (name);
++	g_object_unref (settings);
++	return label;
++}
++
++char *
++pp_config_toplevel_create (GPtrArray *monitors)
++{
++	static const int order[] = { ORIENT_TOP, ORIENT_BOTTOM, ORIENT_RIGHT, ORIENT_LEFT };
++	char **all = get_list ("toplevel-id-list");
++	GPtrArray *items = g_ptr_array_new ();
++	GSettings *settings;
++	int n_monitors = monitors != NULL ? MAX (1, (int) monitors->len) : 1;
++	int *filled = g_new0 (int, n_monitors);
++	int monitor = 0;
++	int orientation = ORIENT_TOP;
++	gboolean found = FALSE;
++	char *id = NULL;
++	int i;
++
++	for (i = 0; all[i] != NULL; i++) {
++		GSettings *existing = pp_config_toplevel (all[i]);
++		int m = g_settings_get_int (existing, "monitor");
++
++		if (m >= 0 && m < n_monitors)
++			filled[m] |= g_settings_get_enum (existing, "orientation");
++
++		g_object_unref (existing);
++		g_ptr_array_add (items, all[i]);
++	}
++
++	for (i = 0; id == NULL; i++) {
++		id = g_strdup_printf ("toplevel-%d", i);
++		if (list_contains (all, id))
++			g_clear_pointer (&id, g_free);
++	}
++
++	for (i = 0; i < n_monitors && !found; i++) {
++		guint k;
++
++		for (k = 0; k < G_N_ELEMENTS (order); k++) {
++			if (!(filled[i] & order[k])) {
++				monitor = i;
++				orientation = order[k];
++				found = TRUE;
++				break;
++			}
++		}
++	}
++
++	reset_toplevel (id);
++	settings = pp_config_toplevel (id);
++	g_settings_set_int (settings, "screen", 0);
++	if (found) {
++		const PpMonitor *chosen = pp_monitors_lookup (monitors, monitor);
++
++		if (chosen != NULL)
++			pp_monitors_assign (settings, chosen);
++		else
++			g_settings_set_int (settings, "monitor", monitor);
++		g_settings_set_enum (settings, "orientation", orientation);
++	}
++	g_settings_sync ();
++	g_object_unref (settings);
++
++	g_ptr_array_add (items, id);
++	set_list ("toplevel-id-list", items);
++
++	g_ptr_array_unref (items);
++	g_strfreev (all);
++	g_free (filled);
++
++	return id;
++}
++
++static void
++delete_toplevel_internal (const char *toplevel_id_in, gboolean cleanup)
++{
++	g_autofree char *toplevel_id = g_strdup (toplevel_id_in);
++	char **objects = get_list ("object-id-list");
++	GPtrArray *keep = g_ptr_array_new ();
++	GPtrArray *removed = g_ptr_array_new ();
++	guint i;
++	int j;
++
++	for (j = 0; objects[j] != NULL; j++) {
++		GSettings *settings = pp_config_object (objects[j]);
++		char *parent = g_settings_get_string (settings, "toplevel-id");
++
++		if (g_strcmp0 (parent, toplevel_id) == 0)
++			g_ptr_array_add (removed, objects[j]);
++		else
++			g_ptr_array_add (keep, objects[j]);
++
++		g_free (parent);
++		g_object_unref (settings);
++	}
++
++	set_list ("object-id-list", keep);
++
++	for (i = 0; i < removed->len; i++) {
++		GSettings *settings = pp_config_object (removed->pdata[i]);
++		char *attached = g_settings_get_string (settings, "attached-toplevel-id");
++
++		g_object_unref (settings);
++		if (attached != NULL && attached[0] != '\0')
++			delete_toplevel_internal (attached, cleanup);
++		g_free (attached);
++
++		if (cleanup)
++			reset_object (removed->pdata[i]);
++	}
++
++	remove_from_list ("toplevel-id-list", toplevel_id);
++	if (cleanup)
++		reset_toplevel (toplevel_id);
++
++	g_settings_sync ();
++	g_ptr_array_unref (keep);
++	g_ptr_array_unref (removed);
++	g_strfreev (objects);
++}
++
++gboolean
++pp_config_toplevel_delete (const char *toplevel_id)
++{
++	char **visible = pp_config_toplevel_ids ();
++	char *id = g_strdup (toplevel_id);
++	gboolean allowed = g_strv_length (visible) > 1 && list_contains (visible, id);
++
++	g_strfreev (visible);
++	if (allowed)
++		delete_toplevel_internal (id, !pp_panel_is_running ());
++
++	g_free (id);
++	return allowed;
++}
++
++static gboolean
++restart_panel_cb (gpointer user_data)
++{
++	char *argv[] = { "mate-panel", "--replace", NULL };
++
++	g_spawn_async (NULL, argv, NULL,
++		       G_SPAWN_SEARCH_PATH | G_SPAWN_STDOUT_TO_DEV_NULL | G_SPAWN_STDERR_TO_DEV_NULL,
++		       NULL, NULL, NULL, NULL);
++
++	return G_SOURCE_REMOVE;
++}
++
++void
++pp_config_reset_all (void)
++{
++	gboolean running = pp_panel_is_running ();
++	GPtrArray *empty = g_ptr_array_new ();
++	char **objects = get_list ("object-id-list");
++	char **toplevels = get_list ("toplevel-id-list");
++	int i;
++
++	set_list ("object-id-list", empty);
++	set_list ("toplevel-id-list", empty);
++	g_ptr_array_unref (empty);
++
++	if (!running) {
++		for (i = 0; objects[i] != NULL; i++)
++			reset_object (objects[i]);
++		for (i = 0; toplevels[i] != NULL; i++)
++			reset_toplevel (toplevels[i]);
++		g_settings_sync ();
++	} else {
++		g_timeout_add (PANEL_RESTART_DELAY_MS, restart_panel_cb, NULL);
++	}
++
++	g_strfreev (objects);
++	g_strfreev (toplevels);
++}
++
++static void
++load_applet_info (void)
++{
++	const char * const *dirs = g_get_system_data_dirs ();
++	GPtrArray *roots = g_ptr_array_new_with_free_func (g_free);
++	guint r;
++	int i;
++
++	applet_info = g_hash_table_new_full (g_str_hash, g_str_equal, g_free, (GDestroyNotify) g_key_file_unref);
++
++	for (i = 0; dirs[i] != NULL; i++)
++		g_ptr_array_insert (roots, 0, g_build_filename (dirs[i], "mate-panel", "applets", NULL));
++	g_ptr_array_add (roots, g_build_filename (g_get_user_data_dir (), "mate-panel", "applets", NULL));
++
++	for (r = 0; r < roots->len; r++) {
++		GDir *dir = g_dir_open (roots->pdata[r], 0, NULL);
++		const char *file;
++
++		if (dir == NULL)
++			continue;
++
++		while ((file = g_dir_read_name (dir)) != NULL) {
++			GKeyFile *key_file;
++			char *path;
++			char *factory = NULL;
++
++			if (!g_str_has_suffix (file, ".mate-panel-applet"))
++				continue;
++
++			path = g_build_filename (roots->pdata[r], file, NULL);
++			key_file = g_key_file_new ();
++			if (g_key_file_load_from_file (key_file, path, G_KEY_FILE_NONE, NULL))
++				factory = g_key_file_get_string (key_file, "Applet Factory", "Id", NULL);
++
++			if (factory != NULL) {
++				gsize n, k;
++				char **groups = g_key_file_get_groups (key_file, &n);
++
++				for (k = 0; k < n; k++) {
++					GKeyFile *entry;
++					char *name;
++					char *icon;
++
++					if (g_strcmp0 (groups[k], "Applet Factory") == 0)
++						continue;
++
++					name = g_key_file_get_locale_string (key_file, groups[k], "Name", NULL, NULL);
++					icon = g_key_file_get_string (key_file, groups[k], "Icon", NULL);
++					entry = g_key_file_new ();
++					g_key_file_set_string (entry, "e", "name", name ? name : groups[k]);
++					g_key_file_set_string (entry, "e", "icon", icon ? icon : "");
++					g_hash_table_replace (applet_info,
++							      g_strdup_printf ("%s::%s", factory, groups[k]),
++							      entry);
++					g_free (name);
++					g_free (icon);
++				}
++				g_strfreev (groups);
++				g_free (factory);
++			}
++			g_key_file_free (key_file);
++			g_free (path);
++		}
++		g_dir_close (dir);
++	}
++
++	g_ptr_array_unref (roots);
++}
++
++static char *
++launchers_dir (void)
++{
++	return g_build_filename (g_get_user_config_dir (), "mate", "panel2.d", "default", "launchers", NULL);
++}
++
++static GDesktopAppInfo *
++resolve_launcher (const char *location, char **path_out)
++{
++	GDesktopAppInfo *info = NULL;
++	char *path = NULL;
++
++	*path_out = NULL;
++	if (location == NULL || location[0] == '\0')
++		return NULL;
++
++	if (g_str_has_prefix (location, "file://"))
++		path = g_filename_from_uri (location, NULL, NULL);
++	else if (g_path_is_absolute (location))
++		path = g_strdup (location);
++	else {
++		char *dir = launchers_dir ();
++
++		path = g_build_filename (dir, location, NULL);
++		g_free (dir);
++		if (!g_file_test (path, G_FILE_TEST_EXISTS))
++			g_clear_pointer (&path, g_free);
++	}
++
++	if (path != NULL)
++		info = g_desktop_app_info_new_from_filename (path);
++	if (info == NULL && path == NULL)
++		info = g_desktop_app_info_new (location);
++	if (info != NULL && path == NULL && g_desktop_app_info_get_filename (info) != NULL)
++		path = g_strdup (g_desktop_app_info_get_filename (info));
++
++	*path_out = path;
++	return info;
++}
++
++static void
++describe_action (PpObject *object, const char *action)
++{
++	static const struct {
++		const char *action;
++		const char *name;
++		const char *icon;
++	} actions[] = {
++		{ "lock",           N_("Lock Screen"),       "system-lock-screen" },
++		{ "logout",         N_("Log Out"),           "system-log-out" },
++		{ "run",            N_("Run Application"),   "system-run" },
++		{ "search",         N_("Search for Files"),  "system-search" },
++		{ "force-quit",     N_("Force Quit"),        "process-stop" },
++		{ "connect-server", N_("Connect to Server"), "network-server" },
++		{ "shutdown",       N_("Shut Down"),         "system-shutdown" }
++	};
++	guint i;
++
++	for (i = 0; i < G_N_ELEMENTS (actions); i++) {
++		if (g_strcmp0 (actions[i].action, action) == 0) {
++			object->name = g_strdup (_(actions[i].name));
++			object->icon = g_themed_icon_new (actions[i].icon);
++			return;
++		}
++	}
++
++	object->name = g_strdup (_("Action Button"));
++	object->icon = g_themed_icon_new ("system-run");
++}
++
++static void
++describe_object (PpObject *object, GSettings *settings)
++{
++	char *type = g_settings_get_string (settings, "object-type");
++
++	object->type = type;
++
++	if (g_strcmp0 (type, "applet") == 0) {
++		char *iid = g_settings_get_string (settings, "applet-iid");
++		GKeyFile *entry;
++
++		if (applet_info == NULL)
++			load_applet_info ();
++
++		entry = g_hash_table_lookup (applet_info, iid);
++		if (entry != NULL) {
++			char *icon = g_key_file_get_string (entry, "e", "icon", NULL);
++
++			object->name = g_key_file_get_string (entry, "e", "name", NULL);
++			if (icon != NULL && icon[0] != '\0')
++				object->icon = g_icon_new_for_string (icon, NULL);
++			g_free (icon);
++		} else {
++			object->name = g_strdup (iid != NULL && iid[0] != '\0' ? iid : _("Applet"));
++		}
++		g_free (iid);
++	} else if (g_strcmp0 (type, "launcher") == 0) {
++		char *location = g_settings_get_string (settings, "launcher-location");
++		GDesktopAppInfo *info = resolve_launcher (location, &object->launcher);
++
++		if (info != NULL) {
++			object->name = g_strdup (g_app_info_get_name (G_APP_INFO (info)));
++			if (g_app_info_get_icon (G_APP_INFO (info)) != NULL)
++				object->icon = g_object_ref (g_app_info_get_icon (G_APP_INFO (info)));
++			g_object_unref (info);
++		}
++		if (object->name == NULL)
++			object->name = g_strdup (_("Launcher"));
++		g_free (location);
++	} else if (g_strcmp0 (type, "menu") == 0) {
++		object->name = g_strdup (_("Main Menu"));
++		object->icon = g_themed_icon_new ("start-here");
++	} else if (g_strcmp0 (type, "menu-bar") == 0) {
++		object->name = g_strdup (_("Menu Bar"));
++		object->icon = g_themed_icon_new ("start-here");
++	} else if (g_strcmp0 (type, "separator") == 0) {
++		object->name = g_strdup (_("Separator"));
++		object->icon = g_themed_icon_new ("view-more-horizontal-symbolic");
++	} else if (g_strcmp0 (type, "drawer") == 0) {
++		char *tooltip = g_settings_get_string (settings, "tooltip");
++
++		object->name = g_strdup (tooltip != NULL && tooltip[0] != '\0' ? tooltip : _("Drawer"));
++		object->icon = g_themed_icon_new ("folder");
++		g_free (tooltip);
++	} else if (g_strcmp0 (type, "action") == 0) {
++		char *action = g_settings_get_string (settings, "action-type");
++
++		describe_action (object, action);
++		g_free (action);
++	} else {
++		object->name = g_strdup (_("Unknown Item"));
++	}
++
++	if (object->icon == NULL)
++		object->icon = g_themed_icon_new ("application-x-executable");
++}
++
++void
++pp_object_free (PpObject *object)
++{
++	if (object == NULL)
++		return;
++
++	g_free (object->id);
++	g_free (object->name);
++	g_free (object->type);
++	g_free (object->launcher);
++	g_clear_object (&object->icon);
++	g_free (object);
++}
++
++static int
++settings_compare (gconstpointer a, gconstpointer b, gpointer user_data)
++{
++	const PpObject *x = *(PpObject * const *) a;
++	const PpObject *y = *(PpObject * const *) b;
++	gboolean pack = GPOINTER_TO_INT (user_data);
++
++	if (x->align != y->align)
++		return (int) x->align - (int) y->align;
++	if (x->index != y->index)
++		return pack && x->align == PP_ALIGN_END ? y->index - x->index : x->index - y->index;
++	if (x->position != y->position) {
++		if (!pack && x->align == PP_ALIGN_END)
++			return y->position - x->position;
++		return x->position - y->position;
++	}
++
++	return g_strcmp0 (x->id, y->id);
++}
++
++static int
++panel_order_compare (gconstpointer a, gconstpointer b, gpointer user_data)
++{
++	const PpObject *x = *(PpObject * const *) a;
++	const PpObject *y = *(PpObject * const *) b;
++	GHashTable *rank = user_data;
++	int rx = GPOINTER_TO_INT (g_hash_table_lookup (rank, x->id));
++	int ry = GPOINTER_TO_INT (g_hash_table_lookup (rank, y->id));
++
++	if (rx != ry)
++		return (rx == 0 ? G_MAXINT : rx) < (ry == 0 ? G_MAXINT : ry) ? -1 : 1;
++
++	return 0;
++}
++
++GPtrArray *
++pp_config_objects (const char *toplevel_id)
++{
++	GPtrArray *result = g_ptr_array_new_with_free_func ((GDestroyNotify) pp_object_free);
++	char **objects = get_list ("object-id-list");
++	char **panel_order;
++	gboolean pack = pp_config_has_pack_keys ();
++	int i;
++
++	for (i = 0; objects[i] != NULL; i++) {
++		GSettings *settings = pp_config_object (objects[i]);
++		char *parent = g_settings_get_string (settings, "toplevel-id");
++
++		if (g_strcmp0 (parent, toplevel_id) == 0) {
++			PpObject *object = g_new0 (PpObject, 1);
++
++			object->id = g_strdup (objects[i]);
++			object->position = g_settings_get_int (settings, "position");
++			object->locked = g_settings_get_boolean (settings, "locked");
++			object->align = g_settings_get_boolean (settings, "panel-right-stick") ? PP_ALIGN_END : PP_ALIGN_START;
++			if (pack) {
++				int pack_type = g_settings_get_enum (settings, "pack-type");
++
++				object->index = g_settings_get_int (settings, "pack-index");
++				if (pack_type == PP_ALIGN_CENTER || pack_type == PP_ALIGN_END)
++					object->align = pack_type;
++			}
++			describe_object (object, settings);
++			g_ptr_array_add (result, object);
++		}
++
++		g_free (parent);
++		g_object_unref (settings);
++	}
++
++	g_ptr_array_sort_with_data (result, settings_compare, GINT_TO_POINTER (pack));
++
++	panel_order = pp_panel_is_running () ? pp_panel_get_objects (toplevel_id, NULL) : NULL;
++	if (panel_order != NULL) {
++		GHashTable *rank = g_hash_table_new (g_str_hash, g_str_equal);
++
++		for (i = 0; panel_order[i] != NULL; i++)
++			g_hash_table_insert (rank, panel_order[i], GINT_TO_POINTER (i + 1));
++
++		g_ptr_array_sort_with_data (result, panel_order_compare, rank);
++		g_hash_table_unref (rank);
++		g_strfreev (panel_order);
++	}
++
++	g_strfreev (objects);
++	return result;
++}
++
++static int
++index_in (char **ids, const char *id)
++{
++	int i;
++
++	for (i = 0; ids != NULL && ids[i] != NULL; i++) {
++		if (g_strcmp0 (ids[i], id) == 0)
++			return i;
++	}
++
++	return -1;
++}
++
++gboolean
++pp_config_object_move (const char *toplevel_id, const char *object_id, int direction, GError **error)
++{
++	char **before;
++	int start;
++	int step;
++	gboolean moved_any = FALSE;
++
++	before = pp_panel_get_objects (toplevel_id, error);
++	if (before == NULL)
++		return FALSE;
++
++	start = index_in (before, object_id);
++	g_strfreev (before);
++	if (start < 0)
++		return FALSE;
++
++	for (step = 0; step < MAX_MOVE_STEPS; step++) {
++		char **after;
++		int now;
++
++		if (!pp_panel_move_object (object_id, direction, error))
++			break;
++
++		moved_any = TRUE;
++		after = pp_panel_get_objects (toplevel_id, error);
++		now = index_in (after, object_id);
++		g_strfreev (after);
++
++		if (now != start)
++			break;
++	}
++
++	return moved_any;
++}
++
++void
++pp_config_object_set_locked (const char *object_id, gboolean locked)
++{
++	GSettings *settings = pp_config_object (object_id);
++
++	g_settings_set_boolean (settings, "locked", locked);
++	g_settings_sync ();
++	g_object_unref (settings);
++}
++
++void
++pp_config_object_remove (const char *object_id_in)
++{
++	g_autofree char *object_id = g_strdup (object_id_in);
++	gboolean cleanup = !pp_panel_is_running ();
++	GSettings *settings = pp_config_object (object_id);
++	char *attached = g_settings_get_string (settings, "attached-toplevel-id");
++
++	g_object_unref (settings);
++	remove_from_list ("object-id-list", object_id);
++
++	if (attached != NULL && attached[0] != '\0')
++		delete_toplevel_internal (attached, cleanup);
++
++	if (cleanup) {
++		reset_object (object_id);
++		g_settings_sync ();
++	}
++
++	g_free (attached);
++}
++
++gboolean
++pp_config_object_can_edit (PpObject *object)
++{
++	if (g_strcmp0 (object->type, "drawer") == 0)
++		return pp_panel_is_running ();
++
++	return g_strcmp0 (object->type, "launcher") == 0;
++}
++
++static char *
++writable_launcher_copy (PpObject *object, GError **error)
++{
++	char *dir = launchers_dir ();
++	char *base;
++	char *copy;
++	GFile *src;
++	GFile *dst;
++	gboolean ok;
++	int n = 0;
++
++	if (g_str_has_prefix (object->launcher, dir) && g_access (object->launcher, W_OK) == 0) {
++		g_free (dir);
++		return g_strdup (object->launcher);
++	}
++
++	g_mkdir_with_parents (dir, 0700);
++	base = g_path_get_basename (object->launcher);
++	copy = g_build_filename (dir, base, NULL);
++	while (g_file_test (copy, G_FILE_TEST_EXISTS)) {
++		char *name = g_strdup_printf ("%d-%s", ++n, base);
++
++		g_free (copy);
++		copy = g_build_filename (dir, name, NULL);
++		g_free (name);
++	}
++
++	src = g_file_new_for_path (object->launcher);
++	dst = g_file_new_for_path (copy);
++	ok = g_file_copy (src, dst, G_FILE_COPY_NONE, NULL, NULL, NULL, error);
++	g_object_unref (src);
++	g_object_unref (dst);
++	g_free (base);
++	g_free (dir);
++
++	if (!ok) {
++		g_free (copy);
++		return NULL;
++	}
++
++	{
++		GSettings *settings = pp_config_object (object->id);
++
++		g_settings_set_string (settings, "launcher-location", copy);
++		g_settings_sync ();
++		g_object_unref (settings);
++	}
++
++	return copy;
++}
++
++gboolean
++pp_config_edit_object (PpObject *object, GError **error)
++{
++	GSubprocess *process;
++	char *target;
++
++	if (pp_panel_is_running ()) {
++		if (pp_panel_show_properties (object->id, error))
++			return TRUE;
++		if (error != NULL && *error != NULL)
++			return FALSE;
++		g_set_error_literal (error, G_IO_ERROR, G_IO_ERROR_NOT_SUPPORTED,
++				     _("This item has no properties to edit."));
++		return FALSE;
++	}
++
++	if (g_strcmp0 (object->type, "launcher") != 0 || object->launcher == NULL) {
++		g_set_error_literal (error, G_IO_ERROR, G_IO_ERROR_NOT_SUPPORTED,
++				     _("This item can only be edited while the panel is running."));
++		return FALSE;
++	}
++
++	target = writable_launcher_copy (object, error);
++	if (target == NULL)
++		return FALSE;
++
++	process = g_subprocess_new (G_SUBPROCESS_FLAGS_NONE, error, "mate-desktop-item-edit", target, NULL);
++	g_free (target);
++	if (process == NULL)
++		return FALSE;
++
++	g_object_unref (process);
++	return TRUE;
++}
+diff --git a/capplets/panel/pp-config.h b/capplets/panel/pp-config.h
+new file mode 100644
+index 00000000..f179f1be
+--- /dev/null
++++ b/capplets/panel/pp-config.h
+@@ -0,0 +1,71 @@
++/*
++ * pp-config.h: GSettings backed model of the MATE panel configuration
++ *
++ * Copyright (C) 2026 MATE Developers
++ *
++ * This program is free software; you can redistribute it and/or
++ * modify it under the terms of the GNU General Public License as
++ * published by the Free Software Foundation; either version 2 of the
++ * License, or (at your option) any later version.
++ */
++
++#ifndef PP_CONFIG_H
++#define PP_CONFIG_H
++
++#include <gio/gio.h>
++#include <gtk/gtk.h>
++
++G_BEGIN_DECLS
++
++typedef enum {
++	PP_ALIGN_START = 0,
++	PP_ALIGN_CENTER = 1,
++	PP_ALIGN_END = 2
++} PpAlign;
++
++typedef struct {
++	char     *id;
++	char     *name;
++	GIcon    *icon;
++	char     *type;
++	char     *launcher;
++	PpAlign   align;
++	int       index;
++	int       position;
++	gboolean  locked;
++} PpObject;
++
++gboolean    pp_config_available          (void);
++gboolean    pp_config_has_pack_keys      (void);
++gboolean    pp_config_locked_down        (void);
++
++GSettings  *pp_config_general            (void);
++GSettings  *pp_config_toplevel           (const char *toplevel_id);
++GSettings  *pp_config_background         (const char *toplevel_id);
++GSettings  *pp_config_object             (const char *object_id);
++
++char      **pp_config_toplevel_ids       (void);
++char      **pp_config_object_ids         (void);
++char       *pp_config_toplevel_label     (const char *toplevel_id,
++                                          GPtrArray  *monitors);
++
++char       *pp_config_toplevel_create    (GPtrArray  *monitors);
++gboolean    pp_config_toplevel_delete    (const char *toplevel_id);
++void        pp_config_reset_all          (void);
++
++GPtrArray  *pp_config_objects            (const char *toplevel_id);
++void        pp_object_free               (PpObject   *object);
++gboolean    pp_config_object_move        (const char *toplevel_id,
++                                          const char *object_id,
++                                          int         direction,
++                                          GError    **error);
++void        pp_config_object_set_locked  (const char *object_id,
++                                          gboolean    locked);
++void        pp_config_object_remove      (const char *object_id);
++gboolean    pp_config_object_can_edit    (PpObject   *object);
++gboolean    pp_config_edit_object        (PpObject   *object,
++                                          GError    **error);
++
++G_END_DECLS
++
++#endif
+diff --git a/capplets/panel/pp-monitors.c b/capplets/panel/pp-monitors.c
+new file mode 100644
+index 00000000..f7d8bbed
+--- /dev/null
++++ b/capplets/panel/pp-monitors.c
+@@ -0,0 +1,163 @@
++/*
++ * pp-monitors.c: the monitors as the panel numbers them
++ *
++ * Copyright (C) 2026 MATE Developers
++ *
++ * This program is free software; you can redistribute it and/or
++ * modify it under the terms of the GNU General Public License as
++ * published by the Free Software Foundation; either version 2 of the
++ * License, or (at your option) any later version.
++ */
++
++#include <config.h>
++
++#include <string.h>
++
++#include <glib/gi18n.h>
++
++#include "pp-monitors.h"
++#include "pp-panel.h"
++
++static void
++monitor_free (gpointer data)
++{
++	PpMonitor *monitor = data;
++
++	g_free (monitor->id);
++	g_free (monitor->connector);
++	g_free (monitor->name);
++	g_free (monitor);
++}
++
++static GPtrArray *
++from_panel (void)
++{
++	GVariant *result = pp_panel_get_monitors (NULL);
++	GPtrArray *monitors;
++	GVariantIter *iter;
++	PpMonitor monitor;
++	const char *id, *connector, *name;
++
++	if (result == NULL)
++		return NULL;
++
++	monitors = g_ptr_array_new_with_free_func (monitor_free);
++	g_variant_get (result, "(a(isss(iiii)b))", &iter);
++	while (g_variant_iter_next (iter, "(i&s&s&s(iiii)b)", &monitor.index, &id, &connector, &name,
++				    &monitor.geometry.x, &monitor.geometry.y,
++				    &monitor.geometry.width, &monitor.geometry.height,
++				    &monitor.primary)) {
++		PpMonitor *copy = g_new (PpMonitor, 1);
++
++		*copy = monitor;
++
++		copy->id = g_strdup (id);
++		copy->connector = g_strdup (connector);
++		copy->name = g_strdup (name);
++		g_ptr_array_add (monitors, copy);
++	}
++	g_variant_iter_free (iter);
++	g_variant_unref (result);
++
++	if (monitors->len == 0)
++		g_clear_pointer (&monitors, g_ptr_array_unref);
++	return monitors;
++}
++
++static PpMonitor *
++from_gdk_monitor (GdkMonitor *gdk_monitor, int index)
++{
++	PpMonitor *monitor = g_new0 (PpMonitor, 1);
++	const char *manufacturer = gdk_monitor_get_manufacturer (gdk_monitor);
++	const char *model = gdk_monitor_get_model (gdk_monitor);
++
++	monitor->index = index;
++	monitor->id = g_strdup ("");
++	monitor->connector = g_strdup ("");
++	if (model != NULL && *model != '\0' && manufacturer != NULL && *manufacturer != '\0' &&
++	    g_ascii_strncasecmp (model, manufacturer, strlen (manufacturer)) != 0)
++		monitor->name = g_strdup_printf ("%s %s", manufacturer, model);
++	else
++		monitor->name = g_strdup (model != NULL ? model : "");
++	monitor->primary = gdk_monitor_is_primary (gdk_monitor);
++	gdk_monitor_get_geometry (gdk_monitor, &monitor->geometry);
++	return monitor;
++}
++
++static GPtrArray *
++from_gdk (GdkDisplay *display)
++{
++	GPtrArray *monitors = g_ptr_array_new_with_free_func (monitor_free);
++	GdkMonitor *primary;
++	int n, i;
++
++	if (display == NULL)
++		return monitors;
++
++	n = gdk_display_get_n_monitors (display);
++	primary = gdk_display_get_primary_monitor (display);
++	if (primary == NULL && n > 0)
++		primary = gdk_display_get_monitor (display, 0);
++	if (primary != NULL) {
++		g_ptr_array_add (monitors, from_gdk_monitor (primary, 0));
++		((PpMonitor *) monitors->pdata[0])->primary = TRUE;
++	}
++	for (i = 0; i < n; i++) {
++		GdkMonitor *gdk_monitor = gdk_display_get_monitor (display, i);
++
++		if (gdk_monitor != primary)
++			g_ptr_array_add (monitors, from_gdk_monitor (gdk_monitor, monitors->len));
++	}
++	return monitors;
++}
++
++GPtrArray *
++pp_monitors_new (GdkDisplay *display)
++{
++	GPtrArray *monitors = from_panel ();
++
++	return monitors != NULL ? monitors : from_gdk (display);
++}
++
++const PpMonitor *
++pp_monitors_lookup (GPtrArray *monitors, int index)
++{
++	guint i;
++
++	for (i = 0; monitors != NULL && i < monitors->len; i++) {
++		const PpMonitor *monitor = monitors->pdata[i];
++
++		if (monitor->index == index)
++			return monitor;
++	}
++	return NULL;
++}
++
++char *
++pp_monitor_label (const PpMonitor *monitor)
++{
++	gboolean has_name = monitor->name != NULL && monitor->name[0] != '\0';
++
++	if (monitor->connector != NULL && monitor->connector[0] != '\0') {
++		if (has_name)
++			return g_strdup_printf (C_("Monitor", "%s (%s)"), monitor->name, monitor->connector);
++		return g_strdup (monitor->connector);
++	}
++	if (has_name)
++		return g_strdup_printf (_("Monitor %d: %s"), monitor->index + 1, monitor->name);
++	return g_strdup_printf (_("Monitor %d"), monitor->index + 1);
++}
++
++void
++pp_monitors_assign (GSettings *toplevel, const PpMonitor *monitor)
++{
++	GSettingsSchema *schema = NULL;
++
++	g_object_get (toplevel, "settings-schema", &schema, NULL);
++	if (schema != NULL && g_settings_schema_has_key (schema, "monitor-id") &&
++	    monitor->id != NULL && monitor->id[0] != '\0')
++		g_settings_set_string (toplevel, "monitor-id", monitor->id);
++	if (schema != NULL)
++		g_settings_schema_unref (schema);
++	g_settings_set_int (toplevel, "monitor", monitor->index);
++}
+diff --git a/capplets/panel/pp-monitors.h b/capplets/panel/pp-monitors.h
+new file mode 100644
+index 00000000..cf4aac9c
+--- /dev/null
++++ b/capplets/panel/pp-monitors.h
+@@ -0,0 +1,37 @@
++/*
++ * pp-monitors.h: the monitors as the panel numbers them
++ *
++ * Copyright (C) 2026 MATE Developers
++ *
++ * This program is free software; you can redistribute it and/or
++ * modify it under the terms of the GNU General Public License as
++ * published by the Free Software Foundation; either version 2 of the
++ * License, or (at your option) any later version.
++ */
++
++#ifndef PP_MONITORS_H
++#define PP_MONITORS_H
++
++#include <gtk/gtk.h>
++
++G_BEGIN_DECLS
++
++typedef struct {
++	int           index;
++	char         *id;
++	char         *connector;
++	char         *name;
++	GdkRectangle  geometry;
++	gboolean      primary;
++} PpMonitor;
++
++GPtrArray       *pp_monitors_new     (GdkDisplay      *display);
++const PpMonitor *pp_monitors_lookup  (GPtrArray       *monitors,
++                                      int              index);
++char            *pp_monitor_label    (const PpMonitor *monitor);
++void             pp_monitors_assign  (GSettings       *toplevel,
++                                      const PpMonitor *monitor);
++
++G_END_DECLS
++
++#endif
+diff --git a/capplets/panel/pp-panel.c b/capplets/panel/pp-panel.c
+new file mode 100644
+index 00000000..a6bf952e
+--- /dev/null
++++ b/capplets/panel/pp-panel.c
+@@ -0,0 +1,165 @@
++/*
++ * pp-panel.c: client for the org.mate.Panel.Shell D-Bus interface
++ *
++ * Copyright (C) 2026 MATE Developers
++ *
++ * This program is free software; you can redistribute it and/or
++ * modify it under the terms of the GNU General Public License as
++ * published by the Free Software Foundation; either version 2 of the
++ * License, or (at your option) any later version.
++ */
++
++#include <config.h>
++
++#include <glib/gi18n.h>
++
++#include "pp-panel.h"
++
++#define SHELL_PATH  "/org/mate/panel/Shell"
++#define SHELL_IFACE "org.mate.Panel.Shell"
++#define CALL_TIMEOUT_MS 3000
++
++static GDBusConnection *
++get_connection (GError **error)
++{
++	return g_bus_get_sync (G_BUS_TYPE_SESSION, NULL, error);
++}
++
++static GVariant *
++call_shell (const char          *method,
++	    GVariant            *parameters,
++	    const GVariantType  *reply_type,
++	    GError             **error)
++{
++	GDBusConnection *connection = get_connection (error);
++	GVariant *result;
++
++	if (connection == NULL) {
++		if (parameters != NULL)
++			g_variant_unref (g_variant_ref_sink (parameters));
++		return NULL;
++	}
++
++	result = g_dbus_connection_call_sync (connection, PP_PANEL_BUS_NAME, SHELL_PATH, SHELL_IFACE,
++					      method, parameters, reply_type,
++					      G_DBUS_CALL_FLAGS_NO_AUTO_START,
++					      CALL_TIMEOUT_MS, NULL, error);
++	g_object_unref (connection);
++
++	if (result == NULL && error != NULL && *error != NULL &&
++	    (g_error_matches (*error, G_DBUS_ERROR, G_DBUS_ERROR_UNKNOWN_METHOD) ||
++	     g_error_matches (*error, G_DBUS_ERROR, G_DBUS_ERROR_UNKNOWN_OBJECT) ||
++	     g_error_matches (*error, G_DBUS_ERROR, G_DBUS_ERROR_UNKNOWN_INTERFACE))) {
++		g_clear_error (error);
++		g_set_error_literal (error, G_IO_ERROR, G_IO_ERROR_NOT_SUPPORTED,
++				     _("The running panel does not support this feature. "
++				       "Please update MATE Panel."));
++	} else if (result == NULL && error != NULL && *error != NULL &&
++		   g_error_matches (*error, G_DBUS_ERROR, G_DBUS_ERROR_ACCESS_DENIED)) {
++		g_clear_error (error);
++		g_set_error_literal (error, G_IO_ERROR, G_IO_ERROR_PERMISSION_DENIED,
++				     _("The panels have been locked down by your administrator."));
++	} else if (result == NULL && error != NULL && *error != NULL &&
++		   (g_error_matches (*error, G_DBUS_ERROR, G_DBUS_ERROR_SERVICE_UNKNOWN) ||
++		    g_error_matches (*error, G_DBUS_ERROR, G_DBUS_ERROR_NAME_HAS_NO_OWNER))) {
++		g_clear_error (error);
++		g_set_error_literal (error, G_IO_ERROR, G_IO_ERROR_NOT_CONNECTED,
++				     _("The panel is not running."));
++	}
++
++	return result;
++}
++
++gboolean
++pp_panel_is_running (void)
++{
++	GDBusConnection *connection = get_connection (NULL);
++	GVariant *result;
++	gboolean running = FALSE;
++
++	if (connection == NULL)
++		return FALSE;
++
++	result = g_dbus_connection_call_sync (connection, "org.freedesktop.DBus", "/org/freedesktop/DBus",
++					      "org.freedesktop.DBus", "NameHasOwner",
++					      g_variant_new ("(s)", PP_PANEL_BUS_NAME),
++					      G_VARIANT_TYPE ("(b)"), G_DBUS_CALL_FLAGS_NONE,
++					      CALL_TIMEOUT_MS, NULL, NULL);
++	if (result != NULL) {
++		g_variant_get (result, "(b)", &running);
++		g_variant_unref (result);
++	}
++
++	g_object_unref (connection);
++	return running;
++}
++
++char **
++pp_panel_get_objects (const char *toplevel_id, GError **error)
++{
++	GVariant *result;
++	char **ids = NULL;
++
++	result = call_shell ("GetObjects", g_variant_new ("(s)", toplevel_id),
++			     G_VARIANT_TYPE ("(as)"), error);
++	if (result == NULL)
++		return NULL;
++
++	g_variant_get (result, "(^as)", &ids);
++	g_variant_unref (result);
++
++	return ids;
++}
++
++gboolean
++pp_panel_move_object (const char *object_id, int direction, GError **error)
++{
++	GVariant *result;
++	gboolean moved = FALSE;
++
++	result = call_shell ("MoveObject", g_variant_new ("(si)", object_id, direction),
++			     G_VARIANT_TYPE ("(b)"), error);
++	if (result == NULL)
++		return FALSE;
++
++	g_variant_get (result, "(b)", &moved);
++	g_variant_unref (result);
++
++	return moved;
++}
++
++gboolean
++pp_panel_add_to_panel (const char *toplevel_id, GError **error)
++{
++	GVariant *result;
++
++	result = call_shell ("AddToPanel", g_variant_new ("(s)", toplevel_id), NULL, error);
++	if (result == NULL)
++		return FALSE;
++
++	g_variant_unref (result);
++	return TRUE;
++}
++
++gboolean
++pp_panel_show_properties (const char *object_id, GError **error)
++{
++	GVariant *result;
++	gboolean shown = FALSE;
++
++	result = call_shell ("ShowProperties", g_variant_new ("(s)", object_id),
++			     G_VARIANT_TYPE ("(b)"), error);
++	if (result == NULL)
++		return FALSE;
++
++	g_variant_get (result, "(b)", &shown);
++	g_variant_unref (result);
++
++	return shown;
++}
++
++GVariant *
++pp_panel_get_monitors (GError **error)
++{
++	return call_shell ("GetMonitors", NULL, G_VARIANT_TYPE ("(a(isss(iiii)b))"), error);
++}
+diff --git a/capplets/panel/pp-panel.h b/capplets/panel/pp-panel.h
+new file mode 100644
+index 00000000..dc0dcaf5
+--- /dev/null
++++ b/capplets/panel/pp-panel.h
+@@ -0,0 +1,35 @@
++/*
++ * pp-panel.h: client for the org.mate.Panel.Shell D-Bus interface
++ *
++ * Copyright (C) 2026 MATE Developers
++ *
++ * This program is free software; you can redistribute it and/or
++ * modify it under the terms of the GNU General Public License as
++ * published by the Free Software Foundation; either version 2 of the
++ * License, or (at your option) any later version.
++ */
++
++#ifndef PP_PANEL_H
++#define PP_PANEL_H
++
++#include <gio/gio.h>
++
++G_BEGIN_DECLS
++
++#define PP_PANEL_BUS_NAME "org.mate.Panel"
++
++gboolean   pp_panel_is_running      (void);
++char     **pp_panel_get_objects     (const char  *toplevel_id,
++                                     GError     **error);
++gboolean   pp_panel_move_object     (const char  *object_id,
++                                     int          direction,
++                                     GError     **error);
++gboolean   pp_panel_add_to_panel    (const char  *toplevel_id,
++                                     GError     **error);
++gboolean   pp_panel_show_properties (const char  *object_id,
++                                     GError     **error);
++GVariant  *pp_panel_get_monitors    (GError     **error);
++
++G_END_DECLS
++
++#endif
+diff --git a/capplets/panel/pp-window.c b/capplets/panel/pp-window.c
+new file mode 100644
+index 00000000..4109fd38
+--- /dev/null
++++ b/capplets/panel/pp-window.c
+@@ -0,0 +1,1433 @@
++/*
++ * pp-window.c: main window of the MATE panel properties tool
++ *
++ * Copyright (C) 2026 MATE Developers
++ *
++ * This program is free software; you can redistribute it and/or
++ * modify it under the terms of the GNU General Public License as
++ * published by the Free Software Foundation; either version 2 of the
++ * License, or (at your option) any later version.
++ */
++
++#include <config.h>
++
++#include <stdlib.h>
++
++#include <glib/gi18n.h>
++
++#include "pp-config.h"
++#include "pp-monitors.h"
++#include "pp-panel.h"
++#include "pp-window.h"
++
++#define HELP_URI "help:mate-user-guide/gospanel-15"
++#define MIN_PANEL_SIZE 12
++#define MAX_SIZE_RATIO 5
++#define LIST_DELAY_MS 300
++#define WATCH_DELAY_MS 150
++
++#define LOCK_ICON "changes-prevent-symbolic"
++
++enum {
++	COL_LOCKED,
++	COL_LOCK_ICON,
++	COL_ICON,
++	COL_NAME,
++	COL_ID,
++	COL_EDITABLE,
++	N_COLS
++};
++
++typedef struct {
++	GtkWidget *window;
++	GtkWidget *combo;
++	GtkWidget *add_panel;
++	GtkWidget *remove_panel;
++	GtkWidget *notebook;
++	GtkWidget *general_page;
++	GtkWidget *background_page;
++	GtkWidget *applets_page;
++
++	GSettings *general;
++	GSettings *toplevel;
++	GSettings *background;
++	char      *toplevel_id;
++	gboolean   updating;
++	gboolean   panel_running;
++	gboolean   locked_down;
++	int        panel_count;
++	GtkWidget *lockdown_bar;
++	GtkWidget *reset_button;
++	guint      refresh_source;
++	guint      watch_id;
++	GPtrArray *watchers;
++
++	GPtrArray       *monitors;
++	GDBusConnection *bus;
++	guint            monitors_signal;
++
++	GtkWidget *orientation_combo;
++	GtkWidget *orientation_label;
++	GtkWidget *monitor_combo;
++	GtkWidget *monitor_label;
++	GtkWidget *size_spin;
++	GtkWidget *arrows_toggle;
++	GtkWidget *color_widgets;
++	GtkWidget *image_widgets;
++	GtkWidget *radio_none;
++	GtkWidget *radio_color;
++	GtkWidget *radio_image;
++	GtkWidget *color_button;
++	GtkWidget *opacity_scale;
++	GtkWidget *image_chooser;
++	GtkWidget *radio_tile;
++	GtkWidget *radio_scale;
++	GtkWidget *radio_stretch;
++
++	GtkWidget    *info_bar;
++	GtkWidget    *tree;
++	GtkListStore *store;
++	GtkWidget    *button_add;
++	GtkWidget    *button_remove;
++	GtkWidget    *button_edit;
++	GtkWidget    *button_lock;
++	GtkWidget    *button_up;
++	GtkWidget    *button_down;
++} PpWindow;
++
++static void rebuild_pages (PpWindow *pw);
++static void refresh_objects (PpWindow *pw);
++static void rebuild_combo (PpWindow *pw, const char *select);
++
++static void
++show_error (PpWindow *pw, const char *primary, const char *secondary)
++{
++	GtkWidget *dialog = gtk_message_dialog_new (GTK_WINDOW (pw->window),
++						    GTK_DIALOG_MODAL | GTK_DIALOG_DESTROY_WITH_PARENT,
++						    GTK_MESSAGE_ERROR, GTK_BUTTONS_CLOSE,
++						    "%s", primary);
++
++	if (secondary != NULL)
++		gtk_message_dialog_format_secondary_text (GTK_MESSAGE_DIALOG (dialog), "%s", secondary);
++
++	gtk_dialog_run (GTK_DIALOG (dialog));
++	gtk_widget_destroy (dialog);
++}
++
++static gboolean
++confirm (PpWindow *pw, const char *primary, const char *secondary, const char *action)
++{
++	GtkWidget *dialog = gtk_message_dialog_new (GTK_WINDOW (pw->window),
++						    GTK_DIALOG_MODAL | GTK_DIALOG_DESTROY_WITH_PARENT,
++						    GTK_MESSAGE_QUESTION, GTK_BUTTONS_NONE,
++						    "%s", primary);
++	int response;
++
++	gtk_message_dialog_format_secondary_text (GTK_MESSAGE_DIALOG (dialog), "%s", secondary);
++	gtk_dialog_add_button (GTK_DIALOG (dialog), _("_Cancel"), GTK_RESPONSE_CANCEL);
++	gtk_dialog_add_button (GTK_DIALOG (dialog), action, GTK_RESPONSE_ACCEPT);
++	gtk_dialog_set_default_response (GTK_DIALOG (dialog), GTK_RESPONSE_CANCEL);
++	response = gtk_dialog_run (GTK_DIALOG (dialog));
++	gtk_widget_destroy (dialog);
++
++	return response == GTK_RESPONSE_ACCEPT;
++}
++
++static GtkWidget *
++make_label (const char *text, GtkWidget *mnemonic)
++{
++	GtkWidget *label = gtk_label_new_with_mnemonic (text);
++
++	gtk_widget_set_halign (label, GTK_ALIGN_START);
++	if (mnemonic != NULL)
++		gtk_label_set_mnemonic_widget (GTK_LABEL (label), mnemonic);
++
++	return label;
++}
++
++static GtkWidget *
++named (GtkWidget *widget, const char *name)
++{
++	gtk_widget_set_name (widget, name);
++	return widget;
++}
++
++static GtkWidget *
++page_box (void)
++{
++	GtkWidget *box = gtk_box_new (GTK_ORIENTATION_VERTICAL, 6);
++
++	gtk_container_set_border_width (GTK_CONTAINER (box), 12);
++	return box;
++}
++
++static void
++clear_container (GtkWidget *container)
++{
++	GList *children = gtk_container_get_children (GTK_CONTAINER (container));
++	GList *l;
++
++	for (l = children; l != NULL; l = l->next)
++		gtk_widget_destroy (l->data);
++
++	g_list_free (children);
++}
++
++static GtkWidget *
++indented (GtkWidget *child)
++{
++	GtkWidget *box = gtk_box_new (GTK_ORIENTATION_HORIZONTAL, 0);
++
++	gtk_widget_set_margin_start (child, 18);
++	gtk_box_pack_start (GTK_BOX (box), child, TRUE, TRUE, 0);
++	return box;
++}
++
++static void
++update_size_range (PpWindow *pw)
++{
++	const PpMonitor *monitor;
++	int orientation;
++	int max;
++
++	if (pw->size_spin == NULL || pw->monitors == NULL || pw->monitors->len == 0)
++		return;
++
++	orientation = g_settings_get_enum (pw->toplevel, "orientation");
++	monitor = pp_monitors_lookup (pw->monitors, g_settings_get_int (pw->toplevel, "monitor"));
++	if (monitor == NULL)
++		monitor = pw->monitors->pdata[0];
++
++	max = (orientation == 1 || orientation == 4 ? monitor->geometry.height
++						    : monitor->geometry.width) / MAX_SIZE_RATIO;
++	max = MAX (max, g_settings_get_int (pw->toplevel, "size"));
++	gtk_spin_button_set_range (GTK_SPIN_BUTTON (pw->size_spin), MIN_PANEL_SIZE, MAX (max, MIN_PANEL_SIZE));
++}
++
++static void
++update_orientation_sensitivity (PpWindow *pw)
++{
++	gboolean sensitive = g_settings_get_boolean (pw->toplevel, "expand") &&
++			     g_settings_is_writable (pw->toplevel, "orientation");
++
++	gtk_widget_set_sensitive (pw->orientation_combo, sensitive);
++	gtk_widget_set_sensitive (pw->orientation_label, sensitive);
++}
++
++static void
++fill_monitor_combo (PpWindow *pw)
++{
++	int current;
++	gboolean found = FALSE;
++	char *active;
++	guint i;
++
++	if (pw->monitor_combo == NULL || pw->monitors == NULL)
++		return;
++
++	current = g_settings_get_int (pw->toplevel, "monitor");
++	active = g_strdup_printf ("%d", current);
++
++	pw->updating = TRUE;
++	gtk_combo_box_text_remove_all (GTK_COMBO_BOX_TEXT (pw->monitor_combo));
++	for (i = 0; i < pw->monitors->len; i++) {
++		const PpMonitor *monitor = pw->monitors->pdata[i];
++		char *id = g_strdup_printf ("%d", monitor->index);
++		char *label = pp_monitor_label (monitor);
++
++		gtk_combo_box_text_append (GTK_COMBO_BOX_TEXT (pw->monitor_combo), id, label);
++		found = found || monitor->index == current;
++		g_free (id);
++		g_free (label);
++	}
++	if (!found) {
++		char *label = g_strdup_printf (_("Monitor %d (not connected)"), current + 1);
++
++		gtk_combo_box_text_append (GTK_COMBO_BOX_TEXT (pw->monitor_combo), active, label);
++		g_free (label);
++	}
++	gtk_combo_box_set_active_id (GTK_COMBO_BOX (pw->monitor_combo), active);
++	pw->updating = FALSE;
++
++	gtk_widget_set_sensitive (pw->monitor_combo,
++				  (pw->monitors->len > 1 || !found) &&
++				  g_settings_is_writable (pw->toplevel, "monitor"));
++	gtk_widget_set_sensitive (pw->monitor_label, gtk_widget_get_sensitive (pw->monitor_combo));
++	g_free (active);
++}
++
++static void
++monitor_combo_changed_cb (GtkComboBox *combo, PpWindow *pw)
++{
++	const char *active = gtk_combo_box_get_active_id (combo);
++	const PpMonitor *monitor;
++
++	if (pw->updating || active == NULL)
++		return;
++
++	monitor = pp_monitors_lookup (pw->monitors, atoi (active));
++	if (monitor != NULL && monitor->index != g_settings_get_int (pw->toplevel, "monitor"))
++		pp_monitors_assign (pw->toplevel, monitor);
++}
++
++static gboolean
++same_monitors (GPtrArray *a, GPtrArray *b)
++{
++	guint i;
++
++	if (a == NULL || b == NULL || a->len != b->len)
++		return FALSE;
++	for (i = 0; i < a->len; i++) {
++		const PpMonitor *x = a->pdata[i];
++		const PpMonitor *y = b->pdata[i];
++
++		if (x->index != y->index || x->primary != y->primary ||
++		    g_strcmp0 (x->id, y->id) != 0 || g_strcmp0 (x->connector, y->connector) != 0 ||
++		    g_strcmp0 (x->name, y->name) != 0 ||
++		    !gdk_rectangle_equal (&x->geometry, &y->geometry))
++			return FALSE;
++	}
++	return TRUE;
++}
++
++static void
++refresh_monitors (PpWindow *pw)
++{
++	GPtrArray *monitors = pp_monitors_new (gtk_widget_get_display (pw->window));
++
++	if (same_monitors (pw->monitors, monitors)) {
++		g_ptr_array_unref (monitors);
++		return;
++	}
++
++	if (pw->monitors != NULL)
++		g_ptr_array_unref (pw->monitors);
++	pw->monitors = monitors;
++	update_size_range (pw);
++	fill_monitor_combo (pw);
++	rebuild_combo (pw, pw->toplevel_id);
++}
++
++static void
++toplevel_changed_cb (GSettings *settings, const char *key, PpWindow *pw)
++{
++	if (g_strcmp0 (key, "expand") == 0)
++		update_orientation_sensitivity (pw);
++
++	if (g_strcmp0 (key, "monitor") == 0)
++		fill_monitor_combo (pw);
++
++	if (g_strcmp0 (key, "orientation") == 0 || g_strcmp0 (key, "monitor") == 0)
++		update_size_range (pw);
++
++	if (g_strcmp0 (key, "orientation") == 0 || g_strcmp0 (key, "monitor") == 0 ||
++	    g_strcmp0 (key, "name") == 0)
++		rebuild_combo (pw, pw->toplevel_id);
++}
++
++static void
++buttons_toggled_cb (GtkToggleButton *button, PpWindow *pw)
++{
++	gtk_widget_set_sensitive (pw->arrows_toggle, gtk_toggle_button_get_active (button));
++}
++
++static void
++build_general (PpWindow *pw)
++{
++	GtkWidget *box = pw->general_page;
++	GtkWidget *grid = gtk_grid_new ();
++	GtkWidget *combo;
++	GtkWidget *spin;
++	GtkWidget *expand;
++	GtkWidget *autohide;
++	GtkWidget *buttons;
++	GtkWidget *arrows;
++
++	clear_container (box);
++	gtk_grid_set_row_spacing (GTK_GRID (grid), 6);
++	gtk_grid_set_column_spacing (GTK_GRID (grid), 12);
++
++	combo = named (gtk_combo_box_text_new (), "orientation-combo");
++	gtk_combo_box_text_append (GTK_COMBO_BOX_TEXT (combo), "top", C_("Orientation", "Top"));
++	gtk_combo_box_text_append (GTK_COMBO_BOX_TEXT (combo), "bottom", C_("Orientation", "Bottom"));
++	gtk_combo_box_text_append (GTK_COMBO_BOX_TEXT (combo), "left", C_("Orientation", "Left"));
++	gtk_combo_box_text_append (GTK_COMBO_BOX_TEXT (combo), "right", C_("Orientation", "Right"));
++	gtk_widget_set_hexpand (combo, TRUE);
++	pw->orientation_combo = combo;
++	pw->orientation_label = make_label (_("_Orientation:"), combo);
++	gtk_grid_attach (GTK_GRID (grid), pw->orientation_label, 0, 0, 1, 1);
++	gtk_grid_attach (GTK_GRID (grid), combo, 1, 0, 2, 1);
++
++	pw->monitor_combo = named (gtk_combo_box_text_new (), "monitor-combo");
++	gtk_widget_set_hexpand (pw->monitor_combo, TRUE);
++	pw->monitor_label = make_label (_("_Monitor:"), pw->monitor_combo);
++	gtk_grid_attach (GTK_GRID (grid), pw->monitor_label, 0, 1, 1, 1);
++	gtk_grid_attach (GTK_GRID (grid), pw->monitor_combo, 1, 1, 2, 1);
++	fill_monitor_combo (pw);
++	g_signal_connect (pw->monitor_combo, "changed", G_CALLBACK (monitor_combo_changed_cb), pw);
++
++	spin = named (gtk_spin_button_new_with_range (MIN_PANEL_SIZE, 256, 1), "size-spin");
++	pw->size_spin = spin;
++	update_size_range (pw);
++	gtk_grid_attach (GTK_GRID (grid), make_label (_("_Size:"), spin), 0, 2, 1, 1);
++	gtk_grid_attach (GTK_GRID (grid), spin, 1, 2, 1, 1);
++	gtk_grid_attach (GTK_GRID (grid), make_label (_("pixels"), NULL), 2, 2, 1, 1);
++	gtk_box_pack_start (GTK_BOX (box), grid, FALSE, FALSE, 0);
++
++	expand = named (gtk_check_button_new_with_mnemonic (_("E_xpand")), "expand-toggle");
++	autohide = named (gtk_check_button_new_with_mnemonic (_("_Autohide")), "autohide-toggle");
++	buttons = named (gtk_check_button_new_with_mnemonic (_("Show hide _buttons")), "buttons-toggle");
++	arrows = named (gtk_check_button_new_with_mnemonic (_("Arro_ws on hide buttons")), "arrows-toggle");
++	pw->arrows_toggle = arrows;
++
++	gtk_box_pack_start (GTK_BOX (box), expand, FALSE, FALSE, 0);
++	gtk_box_pack_start (GTK_BOX (box), autohide, FALSE, FALSE, 0);
++	gtk_box_pack_start (GTK_BOX (box), buttons, FALSE, FALSE, 0);
++	gtk_box_pack_start (GTK_BOX (box), indented (arrows), FALSE, FALSE, 0);
++
++	g_settings_bind (pw->toplevel, "orientation", combo, "active-id", G_SETTINGS_BIND_DEFAULT);
++	g_settings_bind (pw->toplevel, "size", spin, "value", G_SETTINGS_BIND_DEFAULT);
++	g_settings_bind (pw->toplevel, "expand", expand, "active", G_SETTINGS_BIND_DEFAULT);
++	g_settings_bind (pw->toplevel, "auto-hide", autohide, "active", G_SETTINGS_BIND_DEFAULT);
++	g_settings_bind (pw->toplevel, "enable-buttons", buttons, "active", G_SETTINGS_BIND_DEFAULT);
++	g_settings_bind (pw->toplevel, "enable-arrows", arrows, "active", G_SETTINGS_BIND_DEFAULT);
++
++	g_signal_connect (buttons, "toggled", G_CALLBACK (buttons_toggled_cb), pw);
++	buttons_toggled_cb (GTK_TOGGLE_BUTTON (buttons), pw);
++	update_orientation_sensitivity (pw);
++	g_signal_connect (pw->toplevel, "changed", G_CALLBACK (toplevel_changed_cb), pw);
++
++	gtk_widget_show_all (box);
++}
++
++static void
++background_update_sensitivity (PpWindow *pw)
++{
++	int type = g_settings_get_enum (pw->background, "type");
++
++	gtk_widget_set_sensitive (pw->color_widgets, type == 1);
++	gtk_widget_set_sensitive (pw->image_widgets, type == 2);
++}
++
++static void
++background_sync (PpWindow *pw)
++{
++	int type = g_settings_get_enum (pw->background, "type");
++	char *color_string = g_settings_get_string (pw->background, "color");
++	char *image = g_settings_get_string (pw->background, "image");
++	gboolean fit = g_settings_get_boolean (pw->background, "fit");
++	gboolean stretch = g_settings_get_boolean (pw->background, "stretch");
++	GdkRGBA color;
++
++	pw->updating = TRUE;
++
++	gtk_toggle_button_set_active (GTK_TOGGLE_BUTTON (type == 1 ? pw->radio_color :
++							 type == 2 ? pw->radio_image : pw->radio_none), TRUE);
++
++	if (!gdk_rgba_parse (&color, color_string))
++		gdk_rgba_parse (&color, "rgb(0,0,0)");
++	gtk_range_set_value (GTK_RANGE (pw->opacity_scale), color.alpha * 100.0);
++	color.alpha = 1.0;
++	gtk_color_chooser_set_rgba (GTK_COLOR_CHOOSER (pw->color_button), &color);
++
++	if (image != NULL && image[0] != '\0')
++		gtk_file_chooser_set_filename (GTK_FILE_CHOOSER (pw->image_chooser), image);
++	else
++		gtk_file_chooser_unselect_all (GTK_FILE_CHOOSER (pw->image_chooser));
++
++	gtk_toggle_button_set_active (GTK_TOGGLE_BUTTON (stretch ? pw->radio_stretch :
++							 fit ? pw->radio_scale : pw->radio_tile), TRUE);
++
++	background_update_sensitivity (pw);
++	pw->updating = FALSE;
++
++	g_free (color_string);
++	g_free (image);
++}
++
++static void
++background_type_toggled_cb (GtkToggleButton *button, PpWindow *pw)
++{
++	int type = 0;
++
++	if (pw->updating || !gtk_toggle_button_get_active (button))
++		return;
++
++	if (GTK_WIDGET (button) == pw->radio_color)
++		type = 1;
++	else if (GTK_WIDGET (button) == pw->radio_image)
++		type = 2;
++
++	g_settings_set_enum (pw->background, "type", type);
++	background_update_sensitivity (pw);
++}
++
++static void
++background_color_write (PpWindow *pw)
++{
++	GdkRGBA color;
++	char *string;
++
++	if (pw->updating)
++		return;
++
++	gtk_color_chooser_get_rgba (GTK_COLOR_CHOOSER (pw->color_button), &color);
++	color.alpha = gtk_range_get_value (GTK_RANGE (pw->opacity_scale)) / 100.0;
++	if (color.alpha >= 0.98)
++		color.alpha = 1.0;
++	else if (color.alpha <= 0.02)
++		color.alpha = 0.0;
++
++	string = gdk_rgba_to_string (&color);
++	g_settings_set_string (pw->background, "color", string);
++	g_free (string);
++}
++
++static void
++background_image_set_cb (GtkFileChooser *chooser, PpWindow *pw)
++{
++	char *filename;
++
++	if (pw->updating)
++		return;
++
++	filename = gtk_file_chooser_get_filename (chooser);
++	if (filename != NULL && filename[0] != '\0')
++		g_settings_set_string (pw->background, "image", filename);
++	else
++		g_settings_reset (pw->background, "image");
++
++	g_free (filename);
++}
++
++static void
++background_style_toggled_cb (GtkToggleButton *button, PpWindow *pw)
++{
++	if (pw->updating || !gtk_toggle_button_get_active (button))
++		return;
++
++	g_settings_set_boolean (pw->background, "fit", GTK_WIDGET (button) == pw->radio_scale);
++	g_settings_set_boolean (pw->background, "stretch", GTK_WIDGET (button) == pw->radio_stretch);
++}
++
++static void
++background_changed_cb (GSettings *settings, const char *key, PpWindow *pw)
++{
++	background_sync (pw);
++}
++
++static void
++build_background (PpWindow *pw)
++{
++	GtkWidget *box = pw->background_page;
++	GtkWidget *grid;
++	GtkWidget *scale_box;
++	GtkWidget *ends;
++	GtkWidget *small;
++	GtkWidget *image_box;
++	GtkWidget *chooser_row;
++	GtkWidget *rotate;
++	GtkFileFilter *filter;
++
++	clear_container (box);
++
++	pw->radio_none = named (gtk_radio_button_new_with_mnemonic (NULL, _("_None (use system theme)")), "background-none");
++	pw->radio_color = named (gtk_radio_button_new_with_mnemonic_from_widget (GTK_RADIO_BUTTON (pw->radio_none),
++										 _("Solid c_olor")), "background-color");
++	pw->radio_image = named (gtk_radio_button_new_with_mnemonic_from_widget (GTK_RADIO_BUTTON (pw->radio_none),
++										 _("Background _image")), "background-image");
++
++	gtk_box_pack_start (GTK_BOX (box), pw->radio_none, FALSE, FALSE, 0);
++	gtk_box_pack_start (GTK_BOX (box), pw->radio_color, FALSE, FALSE, 0);
++
++	grid = gtk_grid_new ();
++	gtk_grid_set_row_spacing (GTK_GRID (grid), 6);
++	gtk_grid_set_column_spacing (GTK_GRID (grid), 12);
++
++	pw->color_button = named (gtk_color_button_new (), "color-button");
++	gtk_widget_set_halign (pw->color_button, GTK_ALIGN_START);
++	gtk_grid_attach (GTK_GRID (grid), make_label (_("Co_lor:"), pw->color_button), 0, 0, 1, 1);
++	gtk_grid_attach (GTK_GRID (grid), pw->color_button, 1, 0, 1, 1);
++
++	pw->opacity_scale = named (gtk_scale_new_with_range (GTK_ORIENTATION_HORIZONTAL, 0, 100, 1), "opacity-scale");
++	gtk_scale_set_draw_value (GTK_SCALE (pw->opacity_scale), FALSE);
++	gtk_widget_set_hexpand (pw->opacity_scale, TRUE);
++	scale_box = gtk_box_new (GTK_ORIENTATION_VERTICAL, 0);
++	gtk_box_pack_start (GTK_BOX (scale_box), pw->opacity_scale, FALSE, FALSE, 0);
++	ends = gtk_box_new (GTK_ORIENTATION_HORIZONTAL, 0);
++	small = gtk_label_new (NULL);
++	gtk_label_set_markup (GTK_LABEL (small), _("<small>Transparent</small>"));
++	gtk_box_pack_start (GTK_BOX (ends), small, FALSE, FALSE, 0);
++	small = gtk_label_new (NULL);
++	gtk_label_set_markup (GTK_LABEL (small), _("<small>Opaque</small>"));
++	gtk_box_pack_end (GTK_BOX (ends), small, FALSE, FALSE, 0);
++	gtk_box_pack_start (GTK_BOX (scale_box), ends, FALSE, FALSE, 0);
++	gtk_grid_attach (GTK_GRID (grid), make_label (_("S_tyle:"), pw->opacity_scale), 0, 1, 1, 1);
++	gtk_grid_attach (GTK_GRID (grid), scale_box, 1, 1, 1, 1);
++
++	pw->color_widgets = indented (grid);
++	gtk_box_pack_start (GTK_BOX (box), pw->color_widgets, FALSE, FALSE, 0);
++	gtk_box_pack_start (GTK_BOX (box), pw->radio_image, FALSE, FALSE, 0);
++
++	image_box = gtk_box_new (GTK_ORIENTATION_VERTICAL, 6);
++	pw->image_chooser = named (gtk_file_chooser_button_new (_("Select Background Image"),
++								GTK_FILE_CHOOSER_ACTION_OPEN), "image-chooser");
++	filter = gtk_file_filter_new ();
++	gtk_file_filter_set_name (filter, _("Images"));
++	gtk_file_filter_add_pixbuf_formats (filter);
++	gtk_file_chooser_add_filter (GTK_FILE_CHOOSER (pw->image_chooser), filter);
++	chooser_row = gtk_box_new (GTK_ORIENTATION_HORIZONTAL, 12);
++	gtk_box_pack_start (GTK_BOX (chooser_row), make_label (_("_File:"), pw->image_chooser), FALSE, FALSE, 0);
++	gtk_box_pack_start (GTK_BOX (chooser_row), pw->image_chooser, TRUE, TRUE, 0);
++	gtk_box_pack_start (GTK_BOX (image_box), chooser_row, FALSE, FALSE, 0);
++
++	pw->radio_tile = named (gtk_radio_button_new_with_mnemonic (NULL, _("_Tile")), "style-tile");
++	pw->radio_scale = named (gtk_radio_button_new_with_mnemonic_from_widget (GTK_RADIO_BUTTON (pw->radio_tile),
++										 _("_Scale")), "style-scale");
++	pw->radio_stretch = named (gtk_radio_button_new_with_mnemonic_from_widget (GTK_RADIO_BUTTON (pw->radio_tile),
++										   _("St_retch")), "style-stretch");
++	gtk_box_pack_start (GTK_BOX (image_box), pw->radio_tile, FALSE, FALSE, 0);
++	gtk_box_pack_start (GTK_BOX (image_box), pw->radio_scale, FALSE, FALSE, 0);
++	gtk_box_pack_start (GTK_BOX (image_box), pw->radio_stretch, FALSE, FALSE, 0);
++
++	rotate = named (gtk_check_button_new_with_mnemonic (_("Rotate image when panel is _vertical")), "rotate-toggle");
++	gtk_box_pack_start (GTK_BOX (image_box), rotate, FALSE, FALSE, 0);
++	g_settings_bind (pw->background, "rotate", rotate, "active", G_SETTINGS_BIND_DEFAULT);
++
++	pw->image_widgets = indented (image_box);
++	gtk_box_pack_start (GTK_BOX (box), pw->image_widgets, FALSE, FALSE, 0);
++
++	background_sync (pw);
++
++	g_signal_connect (pw->radio_none, "toggled", G_CALLBACK (background_type_toggled_cb), pw);
++	g_signal_connect (pw->radio_color, "toggled", G_CALLBACK (background_type_toggled_cb), pw);
++	g_signal_connect (pw->radio_image, "toggled", G_CALLBACK (background_type_toggled_cb), pw);
++	g_signal_connect_swapped (pw->color_button, "color-set", G_CALLBACK (background_color_write), pw);
++	g_signal_connect_swapped (pw->opacity_scale, "value-changed", G_CALLBACK (background_color_write), pw);
++	g_signal_connect (pw->image_chooser, "file-set", G_CALLBACK (background_image_set_cb), pw);
++	g_signal_connect (pw->radio_tile, "toggled", G_CALLBACK (background_style_toggled_cb), pw);
++	g_signal_connect (pw->radio_scale, "toggled", G_CALLBACK (background_style_toggled_cb), pw);
++	g_signal_connect (pw->radio_stretch, "toggled", G_CALLBACK (background_style_toggled_cb), pw);
++	g_signal_connect (pw->background, "changed", G_CALLBACK (background_changed_cb), pw);
++
++	gtk_widget_show_all (box);
++}
++
++static gboolean
++get_selected (PpWindow *pw, GtkTreeIter *iter)
++{
++	GtkTreeSelection *selection;
++
++	if (pw->tree == NULL)
++		return FALSE;
++
++	selection = gtk_tree_view_get_selection (GTK_TREE_VIEW (pw->tree));
++	return gtk_tree_selection_get_selected (selection, NULL, iter);
++}
++
++static char *
++selected_object_id (PpWindow *pw)
++{
++	GtkTreeIter iter;
++	char *id = NULL;
++
++	if (get_selected (pw, &iter))
++		gtk_tree_model_get (GTK_TREE_MODEL (pw->store), &iter, COL_ID, &id, -1);
++
++	return id;
++}
++
++static gboolean
++row_locked (PpWindow *pw, GtkTreeIter *iter)
++{
++	gboolean locked = FALSE;
++
++	gtk_tree_model_get (GTK_TREE_MODEL (pw->store), iter, COL_LOCKED, &locked, -1);
++	return locked;
++}
++
++static void
++set_button_label (GtkWidget *button, const char *label, const char *icon)
++{
++	gtk_button_set_label (GTK_BUTTON (button), label);
++	gtk_button_set_image (GTK_BUTTON (button), gtk_image_new_from_icon_name (icon, GTK_ICON_SIZE_BUTTON));
++}
++
++static void
++update_applet_buttons (PpWindow *pw)
++{
++	GtkTreeIter iter;
++	gboolean selected;
++	gboolean locked = FALSE;
++	gboolean editable = FALSE;
++	gboolean can_up = FALSE;
++	gboolean can_down = FALSE;
++
++	if (pw->store == NULL)
++		return;
++
++	selected = get_selected (pw, &iter);
++
++	if (selected) {
++		GtkTreeIter other = iter;
++
++		gtk_tree_model_get (GTK_TREE_MODEL (pw->store), &iter,
++				    COL_LOCKED, &locked, COL_EDITABLE, &editable, -1);
++
++		if (pw->panel_running && !locked) {
++			if (gtk_tree_model_iter_previous (GTK_TREE_MODEL (pw->store), &other))
++				can_up = !row_locked (pw, &other);
++
++			other = iter;
++			if (gtk_tree_model_iter_next (GTK_TREE_MODEL (pw->store), &other))
++				can_down = !row_locked (pw, &other);
++		}
++	}
++
++	if (pw->locked_down) {
++		selected = FALSE;
++		can_up = FALSE;
++		can_down = FALSE;
++	}
++
++	gtk_widget_set_sensitive (pw->button_add, pw->panel_running && !pw->locked_down);
++	gtk_widget_set_sensitive (pw->button_remove, selected && !locked);
++	gtk_widget_set_sensitive (pw->button_edit, selected && editable);
++	gtk_widget_set_sensitive (pw->button_lock, selected);
++	gtk_widget_set_sensitive (pw->button_up, can_up);
++	gtk_widget_set_sensitive (pw->button_down, can_down);
++
++	if (selected && locked)
++		set_button_label (pw->button_lock, _("Un_lock"), "changes-allow");
++	else
++		set_button_label (pw->button_lock, _("_Lock"), "changes-prevent");
++}
++
++static void
++object_changed_cb (GSettings *settings, const char *key, PpWindow *pw);
++
++static void
++clear_watchers (PpWindow *pw)
++{
++	guint i;
++
++	if (pw->watchers == NULL)
++		return;
++
++	for (i = 0; i < pw->watchers->len; i++)
++		g_signal_handlers_disconnect_by_data (pw->watchers->pdata[i], pw);
++
++	g_clear_pointer (&pw->watchers, g_ptr_array_unref);
++}
++
++static void
++rebuild_watchers (PpWindow *pw, GPtrArray *objects)
++{
++	guint i;
++
++	clear_watchers (pw);
++	pw->watchers = g_ptr_array_new_with_free_func (g_object_unref);
++
++	for (i = 0; i < objects->len; i++) {
++		PpObject *object = objects->pdata[i];
++		GSettings *settings = pp_config_object (object->id);
++
++		g_signal_connect (settings, "changed", G_CALLBACK (object_changed_cb), pw);
++		g_ptr_array_add (pw->watchers, settings);
++	}
++}
++
++static void
++refresh_objects (PpWindow *pw)
++{
++	GtkTreeSelection *selection;
++	GPtrArray *objects;
++	char *selected;
++	GtkTreeIter iter;
++	guint i;
++
++	if (pw->store == NULL || pw->toplevel_id == NULL)
++		return;
++
++	selection = gtk_tree_view_get_selection (GTK_TREE_VIEW (pw->tree));
++	selected = selected_object_id (pw);
++	objects = pp_config_objects (pw->toplevel_id);
++	rebuild_watchers (pw, objects);
++
++	g_signal_handlers_block_by_func (selection, update_applet_buttons, pw);
++	gtk_list_store_clear (pw->store);
++	for (i = 0; i < objects->len; i++) {
++		PpObject *object = objects->pdata[i];
++
++		gtk_list_store_insert_with_values (pw->store, &iter, -1,
++						   COL_LOCKED, object->locked,
++						   COL_LOCK_ICON, object->locked ? LOCK_ICON : NULL,
++						   COL_ICON, object->icon,
++						   COL_NAME, object->name,
++						   COL_ID, object->id,
++						   COL_EDITABLE, pp_config_object_can_edit (object),
++						   -1);
++
++		if (selected != NULL && g_strcmp0 (selected, object->id) == 0)
++			gtk_tree_selection_select_iter (selection, &iter);
++	}
++	g_signal_handlers_unblock_by_func (selection, update_applet_buttons, pw);
++
++	g_ptr_array_unref (objects);
++	g_free (selected);
++	update_applet_buttons (pw);
++}
++
++static gboolean
++refresh_timeout_cb (gpointer data)
++{
++	PpWindow *pw = data;
++
++	pw->refresh_source = 0;
++	refresh_monitors (pw);
++	refresh_objects (pw);
++
++	return G_SOURCE_REMOVE;
++}
++
++static void
++schedule_refresh (PpWindow *pw, guint delay)
++{
++	if (pw->refresh_source != 0)
++		g_source_remove (pw->refresh_source);
++
++	pw->refresh_source = g_timeout_add (delay, refresh_timeout_cb, pw);
++}
++
++static void
++object_changed_cb (GSettings *settings, const char *key, PpWindow *pw)
++{
++	schedule_refresh (pw, WATCH_DELAY_MS);
++}
++
++static void
++object_list_changed_cb (GSettings *settings, const char *key, PpWindow *pw)
++{
++	schedule_refresh (pw, LIST_DELAY_MS);
++}
++
++static void
++add_clicked_cb (GtkButton *button, PpWindow *pw)
++{
++	GError *error = NULL;
++	char *toplevel = g_strdup (pw->toplevel_id);
++	gboolean shown = pp_panel_add_to_panel (toplevel, &error);
++
++	g_free (toplevel);
++	if (!shown) {
++		show_error (pw, _("Could not open the Add to Panel dialog"),
++			    error != NULL ? error->message : NULL);
++		g_clear_error (&error);
++	}
++}
++
++static void
++remove_clicked_cb (GtkButton *button, PpWindow *pw)
++{
++	char *id = selected_object_id (pw);
++
++	if (id == NULL)
++		return;
++
++	pp_config_object_remove (id);
++	g_free (id);
++	refresh_objects (pw);
++}
++
++static PpObject *
++find_object (GPtrArray *objects, const char *id)
++{
++	guint i;
++
++	for (i = 0; i < objects->len; i++) {
++		PpObject *object = objects->pdata[i];
++
++		if (g_strcmp0 (object->id, id) == 0)
++			return object;
++	}
++
++	return NULL;
++}
++
++static void
++edit_clicked_cb (GtkButton *button, PpWindow *pw)
++{
++	char *id = selected_object_id (pw);
++	GPtrArray *objects;
++	PpObject *object;
++	GError *error = NULL;
++
++	if (id == NULL)
++		return;
++
++	objects = pp_config_objects (pw->toplevel_id);
++	object = find_object (objects, id);
++	if (object != NULL && !pp_config_edit_object (object, &error)) {
++		show_error (pw, _("Could not edit this item"), error != NULL ? error->message : NULL);
++		g_clear_error (&error);
++	}
++
++	g_ptr_array_unref (objects);
++	g_free (id);
++}
++
++static void
++lock_clicked_cb (GtkButton *button, PpWindow *pw)
++{
++	GtkTreeIter iter;
++	char *id = NULL;
++	gboolean locked = FALSE;
++
++	if (!get_selected (pw, &iter))
++		return;
++
++	gtk_tree_model_get (GTK_TREE_MODEL (pw->store), &iter, COL_ID, &id, COL_LOCKED, &locked, -1);
++	pp_config_object_set_locked (id, !locked);
++	g_free (id);
++	refresh_objects (pw);
++}
++
++static void
++move_selected (PpWindow *pw, int direction)
++{
++	char *id = selected_object_id (pw);
++	char *toplevel = g_strdup (pw->toplevel_id);
++	GError *error = NULL;
++
++	if (id == NULL) {
++		g_free (toplevel);
++		return;
++	}
++
++	if (!pp_config_object_move (toplevel, id, direction, &error) && error != NULL) {
++		show_error (pw, _("Could not move this item"), error->message);
++		g_clear_error (&error);
++	}
++
++	g_free (toplevel);
++	g_free (id);
++	refresh_objects (pw);
++}
++
++static void
++up_clicked_cb (GtkButton *button, PpWindow *pw)
++{
++	move_selected (pw, -1);
++}
++
++static void
++down_clicked_cb (GtkButton *button, PpWindow *pw)
++{
++	move_selected (pw, 1);
++}
++
++static void
++row_activated_cb (GtkTreeView *tree, GtkTreePath *path, GtkTreeViewColumn *column, PpWindow *pw)
++{
++	if (gtk_widget_get_sensitive (pw->button_edit))
++		edit_clicked_cb (NULL, pw);
++}
++
++static GtkWidget *
++side_button (const char *label, const char *icon, const char *name, const char *tooltip)
++{
++	GtkWidget *button = named (gtk_button_new_with_mnemonic (label), name);
++
++	gtk_button_set_image (GTK_BUTTON (button), gtk_image_new_from_icon_name (icon, GTK_ICON_SIZE_BUTTON));
++	gtk_button_set_always_show_image (GTK_BUTTON (button), TRUE);
++	gtk_widget_set_tooltip_text (button, tooltip);
++	return button;
++}
++
++static void
++update_info_bar (PpWindow *pw)
++{
++	if (pw->info_bar != NULL)
++		gtk_widget_set_visible (pw->info_bar, !pw->panel_running);
++}
++
++static void
++build_applets (PpWindow *pw)
++{
++	GtkWidget *box = pw->applets_page;
++	GtkWidget *row;
++	GtkWidget *scroll;
++	GtkWidget *buttons;
++	GtkWidget *label;
++	GtkCellRenderer *renderer;
++	GtkTreeViewColumn *column;
++
++	clear_container (box);
++
++	pw->info_bar = named (gtk_info_bar_new (), "panel-not-running");
++	gtk_info_bar_set_message_type (GTK_INFO_BAR (pw->info_bar), GTK_MESSAGE_WARNING);
++	label = gtk_label_new (_("The panel is not running. Adding and moving items is unavailable."));
++	gtk_label_set_line_wrap (GTK_LABEL (label), TRUE);
++	gtk_label_set_xalign (GTK_LABEL (label), 0.0);
++	gtk_container_add (GTK_CONTAINER (gtk_info_bar_get_content_area (GTK_INFO_BAR (pw->info_bar))), label);
++	gtk_box_pack_start (GTK_BOX (box), pw->info_bar, FALSE, FALSE, 0);
++
++	label = gtk_label_new (_("Items are listed in the order they appear on the panel, from left to right or from top to bottom."));
++	gtk_label_set_line_wrap (GTK_LABEL (label), TRUE);
++	gtk_label_set_xalign (GTK_LABEL (label), 0.0);
++	gtk_box_pack_start (GTK_BOX (box), label, FALSE, FALSE, 0);
++
++	row = gtk_box_new (GTK_ORIENTATION_HORIZONTAL, 6);
++	gtk_box_pack_start (GTK_BOX (box), row, TRUE, TRUE, 0);
++
++	pw->store = gtk_list_store_new (N_COLS, G_TYPE_BOOLEAN, G_TYPE_STRING, G_TYPE_ICON,
++					G_TYPE_STRING, G_TYPE_STRING, G_TYPE_BOOLEAN);
++	pw->tree = named (gtk_tree_view_new_with_model (GTK_TREE_MODEL (pw->store)), "items-tree");
++	gtk_tree_view_set_headers_visible (GTK_TREE_VIEW (pw->tree), FALSE);
++	g_object_unref (pw->store);
++
++	renderer = gtk_cell_renderer_pixbuf_new ();
++	gtk_cell_renderer_set_fixed_size (renderer, 24, -1);
++	column = gtk_tree_view_column_new_with_attributes (_("Locked"), renderer, "icon-name", COL_LOCK_ICON, NULL);
++	gtk_tree_view_append_column (GTK_TREE_VIEW (pw->tree), column);
++
++	column = gtk_tree_view_column_new ();
++	gtk_tree_view_column_set_title (column, _("Item"));
++	gtk_tree_view_column_set_expand (column, TRUE);
++	renderer = gtk_cell_renderer_pixbuf_new ();
++	g_object_set (renderer, "stock-size", GTK_ICON_SIZE_LARGE_TOOLBAR, NULL);
++	gtk_tree_view_column_pack_start (column, renderer, FALSE);
++	gtk_tree_view_column_add_attribute (column, renderer, "gicon", COL_ICON);
++	renderer = gtk_cell_renderer_text_new ();
++	g_object_set (renderer, "ellipsize", PANGO_ELLIPSIZE_END, NULL);
++	gtk_tree_view_column_pack_start (column, renderer, TRUE);
++	gtk_tree_view_column_add_attribute (column, renderer, "text", COL_NAME);
++	gtk_tree_view_append_column (GTK_TREE_VIEW (pw->tree), column);
++
++	scroll = gtk_scrolled_window_new (NULL, NULL);
++	gtk_scrolled_window_set_shadow_type (GTK_SCROLLED_WINDOW (scroll), GTK_SHADOW_IN);
++	gtk_scrolled_window_set_policy (GTK_SCROLLED_WINDOW (scroll), GTK_POLICY_NEVER, GTK_POLICY_AUTOMATIC);
++	gtk_widget_set_hexpand (scroll, TRUE);
++	gtk_widget_set_vexpand (scroll, TRUE);
++	gtk_container_add (GTK_CONTAINER (scroll), pw->tree);
++	gtk_box_pack_start (GTK_BOX (row), scroll, TRUE, TRUE, 0);
++
++	buttons = gtk_box_new (GTK_ORIENTATION_VERTICAL, 6);
++	pw->button_add = side_button (_("_Add"), "list-add", "item-add", _("Add an item to this panel"));
++	pw->button_remove = side_button (_("_Remove"), "list-remove", "item-remove", _("Remove the selected item from the panel"));
++	pw->button_edit = side_button (_("_Edit"), "document-properties", "item-edit", _("Edit the properties of the selected item"));
++	pw->button_lock = side_button (_("_Lock"), "changes-prevent", "item-lock", _("Lock or unlock the selected item on the panel"));
++	pw->button_up = side_button (_("Move _Up"), "go-up", "item-up", _("Move the selected item toward the start of the panel"));
++	pw->button_down = side_button (_("Move _Down"), "go-down", "item-down", _("Move the selected item toward the end of the panel"));
++	gtk_box_pack_start (GTK_BOX (buttons), pw->button_add, FALSE, FALSE, 0);
++	gtk_box_pack_start (GTK_BOX (buttons), pw->button_remove, FALSE, FALSE, 0);
++	gtk_box_pack_start (GTK_BOX (buttons), pw->button_edit, FALSE, FALSE, 0);
++	gtk_box_pack_start (GTK_BOX (buttons), pw->button_lock, FALSE, FALSE, 0);
++	gtk_widget_set_margin_top (pw->button_up, 12);
++	gtk_box_pack_start (GTK_BOX (buttons), pw->button_up, FALSE, FALSE, 0);
++	gtk_box_pack_start (GTK_BOX (buttons), pw->button_down, FALSE, FALSE, 0);
++	gtk_box_pack_start (GTK_BOX (row), buttons, FALSE, FALSE, 0);
++
++	g_signal_connect (pw->button_add, "clicked", G_CALLBACK (add_clicked_cb), pw);
++	g_signal_connect (pw->button_remove, "clicked", G_CALLBACK (remove_clicked_cb), pw);
++	g_signal_connect (pw->button_edit, "clicked", G_CALLBACK (edit_clicked_cb), pw);
++	g_signal_connect (pw->button_lock, "clicked", G_CALLBACK (lock_clicked_cb), pw);
++	g_signal_connect (pw->button_up, "clicked", G_CALLBACK (up_clicked_cb), pw);
++	g_signal_connect (pw->button_down, "clicked", G_CALLBACK (down_clicked_cb), pw);
++	g_signal_connect_swapped (gtk_tree_view_get_selection (GTK_TREE_VIEW (pw->tree)), "changed",
++				  G_CALLBACK (update_applet_buttons), pw);
++	g_signal_connect (pw->tree, "row-activated", G_CALLBACK (row_activated_cb), pw);
++
++	gtk_widget_show_all (box);
++	update_info_bar (pw);
++	refresh_objects (pw);
++}
++
++static void
++clear_current (PpWindow *pw)
++{
++	if (pw->toplevel != NULL)
++		g_signal_handlers_disconnect_by_data (pw->toplevel, pw);
++	if (pw->background != NULL)
++		g_signal_handlers_disconnect_by_data (pw->background, pw);
++
++	clear_watchers (pw);
++	g_clear_object (&pw->toplevel);
++	g_clear_object (&pw->background);
++}
++
++static void
++rebuild_pages (PpWindow *pw)
++{
++	clear_current (pw);
++	pw->orientation_combo = NULL;
++	pw->monitor_combo = NULL;
++	pw->monitor_label = NULL;
++	pw->size_spin = NULL;
++	pw->store = NULL;
++	pw->tree = NULL;
++	pw->info_bar = NULL;
++
++	clear_container (pw->general_page);
++	clear_container (pw->background_page);
++	clear_container (pw->applets_page);
++
++	if (pw->toplevel_id == NULL) {
++		gtk_widget_set_sensitive (pw->notebook, FALSE);
++		return;
++	}
++
++	gtk_widget_set_sensitive (pw->notebook, TRUE);
++	pw->toplevel = pp_config_toplevel (pw->toplevel_id);
++	pw->background = pp_config_background (pw->toplevel_id);
++
++	build_general (pw);
++	build_background (pw);
++	build_applets (pw);
++}
++
++static void
++combo_changed_cb (GtkComboBox *combo, PpWindow *pw)
++{
++	const char *id;
++
++	if (pw->updating)
++		return;
++
++	id = gtk_combo_box_get_active_id (combo);
++	if (id == NULL || g_strcmp0 (id, pw->toplevel_id) == 0)
++		return;
++
++	g_free (pw->toplevel_id);
++	pw->toplevel_id = g_strdup (id);
++	rebuild_pages (pw);
++}
++
++static void
++rebuild_combo (PpWindow *pw, const char *select)
++{
++	char **ids = pp_config_toplevel_ids ();
++	char *previous = g_strdup (select);
++	char *active;
++	gboolean found = FALSE;
++	int count = g_strv_length (ids);
++	int i;
++
++	GHashTable *seen = g_hash_table_new_full (g_str_hash, g_str_equal, g_free, NULL);
++
++	pw->updating = TRUE;
++	gtk_combo_box_text_remove_all (GTK_COMBO_BOX_TEXT (pw->combo));
++	for (i = 0; ids[i] != NULL; i++) {
++		char *label = pp_config_toplevel_label (ids[i], pw->monitors);
++		int n = GPOINTER_TO_INT (g_hash_table_lookup (seen, label)) + 1;
++
++		g_hash_table_replace (seen, g_strdup (label), GINT_TO_POINTER (n));
++		if (n > 1) {
++			char *unique = g_strdup_printf ("%s (%d)", label, n);
++
++			g_free (label);
++			label = unique;
++		}
++
++		gtk_combo_box_text_append (GTK_COMBO_BOX_TEXT (pw->combo), ids[i], label);
++		if (g_strcmp0 (ids[i], previous) == 0)
++			found = TRUE;
++		g_free (label);
++	}
++	g_hash_table_unref (seen);
++
++	if (found)
++		gtk_combo_box_set_active_id (GTK_COMBO_BOX (pw->combo), previous);
++	else if (count > 0)
++		gtk_combo_box_set_active (GTK_COMBO_BOX (pw->combo), 0);
++	pw->updating = FALSE;
++
++	pw->panel_count = count;
++	gtk_widget_set_sensitive (pw->remove_panel, count > 1 && !pw->locked_down);
++	gtk_widget_set_sensitive (pw->combo, count > 0);
++
++	active = g_strdup (gtk_combo_box_get_active_id (GTK_COMBO_BOX (pw->combo)));
++	if (g_strcmp0 (active, pw->toplevel_id) != 0) {
++		g_free (pw->toplevel_id);
++		pw->toplevel_id = active;
++		rebuild_pages (pw);
++	} else {
++		g_free (active);
++	}
++
++	g_free (previous);
++	g_strfreev (ids);
++}
++
++static void
++panel_list_changed_cb (GSettings *settings, const char *key, PpWindow *pw)
++{
++	rebuild_combo (pw, pw->toplevel_id);
++}
++
++static void
++add_panel_clicked_cb (GtkButton *button, PpWindow *pw)
++{
++	char *id = pp_config_toplevel_create (pw->monitors);
++
++	rebuild_combo (pw, id);
++	g_free (id);
++}
++
++static void
++remove_panel_clicked_cb (GtkButton *button, PpWindow *pw)
++{
++	if (pw->toplevel_id == NULL)
++		return;
++
++	if (!confirm (pw, _("Delete this panel?"),
++		      _("When a panel is deleted, the panel and its settings are lost."),
++		      _("_Delete")))
++		return;
++
++	{
++		char *id = g_strdup (pw->toplevel_id);
++		gboolean deleted = pp_config_toplevel_delete (id);
++
++		g_free (id);
++		if (!deleted)
++			show_error (pw, _("Cannot delete this panel"),
++				    _("You must always have at least one panel."));
++	}
++
++	rebuild_combo (pw, NULL);
++}
++
++static void
++reset_clicked_cb (GtkButton *button, PpWindow *pw)
++{
++	if (!confirm (pw, _("Reset all panels?"),
++		      _("All panels and their contents will be replaced by the default layout. "
++			"This cannot be undone."),
++		      _("_Reset")))
++		return;
++
++	pp_config_reset_all ();
++	rebuild_combo (pw, NULL);
++}
++
++static void
++help_clicked_cb (GtkButton *button, PpWindow *pw)
++{
++	GError *error = NULL;
++
++	if (!gtk_show_uri_on_window (GTK_WINDOW (pw->window), HELP_URI, gtk_get_current_event_time (), &error)) {
++		show_error (pw, _("Could not display help"), error->message);
++		g_clear_error (&error);
++	}
++}
++
++static void
++apply_lockdown (PpWindow *pw)
++{
++	gtk_widget_set_visible (pw->lockdown_bar, pw->locked_down);
++	gtk_widget_set_sensitive (pw->general_page, !pw->locked_down);
++	gtk_widget_set_sensitive (pw->background_page, !pw->locked_down);
++	gtk_widget_set_sensitive (pw->add_panel, !pw->locked_down);
++	gtk_widget_set_sensitive (pw->remove_panel, pw->panel_count > 1 && !pw->locked_down);
++	gtk_widget_set_sensitive (pw->reset_button, !pw->locked_down);
++	update_applet_buttons (pw);
++}
++
++static void
++lockdown_changed_cb (GSettings *settings, const char *key, PpWindow *pw)
++{
++	pw->locked_down = g_settings_get_boolean (settings, key);
++	apply_lockdown (pw);
++}
++
++static void
++close_clicked_cb (GtkButton *button, PpWindow *pw)
++{
++	gtk_widget_destroy (pw->window);
++}
++
++static void
++window_active_cb (GObject *object, GParamSpec *pspec, PpWindow *pw)
++{
++	if (gtk_window_is_active (GTK_WINDOW (pw->window)))
++		schedule_refresh (pw, 50);
++}
++
++static void
++panel_appeared_cb (GDBusConnection *connection, const char *name, const char *owner, gpointer data)
++{
++	PpWindow *pw = data;
++
++	pw->panel_running = TRUE;
++	update_info_bar (pw);
++	schedule_refresh (pw, LIST_DELAY_MS);
++}
++
++static void
++panel_vanished_cb (GDBusConnection *connection, const char *name, gpointer data)
++{
++	PpWindow *pw = data;
++
++	pw->panel_running = FALSE;
++	update_info_bar (pw);
++	schedule_refresh (pw, 50);
++}
++
++static void
++monitors_changed_cb (GDBusConnection *connection,
++		     const char      *sender,
++		     const char      *object_path,
++		     const char      *interface,
++		     const char      *signal,
++		     GVariant        *parameters,
++		     gpointer         data)
++{
++	schedule_refresh (data, 50);
++}
++
++static void
++display_monitors_changed_cb (GdkDisplay *display, GdkMonitor *monitor, PpWindow *pw)
++{
++	schedule_refresh (pw, LIST_DELAY_MS);
++}
++
++static void
++window_destroy_cb (GtkWidget *widget, PpWindow *pw)
++{
++	if (pw->refresh_source != 0)
++		g_source_remove (pw->refresh_source);
++	if (pw->watch_id != 0)
++		g_bus_unwatch_name (pw->watch_id);
++	if (pw->bus != NULL) {
++		g_dbus_connection_signal_unsubscribe (pw->bus, pw->monitors_signal);
++		g_object_unref (pw->bus);
++	}
++	g_signal_handlers_disconnect_by_data (gtk_widget_get_display (pw->window), pw);
++	if (pw->monitors != NULL)
++		g_ptr_array_unref (pw->monitors);
++
++	g_signal_handlers_disconnect_by_data (pw->general, pw);
++	clear_current (pw);
++	g_object_unref (pw->general);
++	g_free (pw->toplevel_id);
++	g_free (pw);
++}
++
++static GtkWidget *
++dialog_button (const char *label, const char *icon, const char *name)
++{
++	GtkWidget *button = named (gtk_button_new_with_mnemonic (label), name);
++
++	gtk_button_set_image (GTK_BUTTON (button), gtk_image_new_from_icon_name (icon, GTK_ICON_SIZE_BUTTON));
++	return button;
++}
++
++GtkWidget *
++pp_window_new (GtkApplication *application)
++{
++	PpWindow *pw = g_new0 (PpWindow, 1);
++	GtkWidget *vbox;
++	GtkWidget *top;
++	GtkWidget *buttons;
++	GtkWidget *help;
++	GtkWidget *reset;
++	GtkWidget *close;
++
++	pw->panel_running = pp_panel_is_running ();
++
++	pw->window = application != NULL ? gtk_application_window_new (application)
++				       : gtk_window_new (GTK_WINDOW_TOPLEVEL);
++	gtk_window_set_title (GTK_WINDOW (pw->window), _("Panel Properties"));
++	gtk_window_set_icon_name (GTK_WINDOW (pw->window), "mate-panel");
++	gtk_window_set_default_size (GTK_WINDOW (pw->window), 560, 480);
++	gtk_container_set_border_width (GTK_CONTAINER (pw->window), 12);
++	g_object_set_data (G_OBJECT (pw->window), "pp-window", pw);
++
++	vbox = gtk_box_new (GTK_ORIENTATION_VERTICAL, 12);
++	gtk_container_add (GTK_CONTAINER (pw->window), vbox);
++
++	pw->lockdown_bar = named (gtk_info_bar_new (), "locked-down");
++	gtk_info_bar_set_message_type (GTK_INFO_BAR (pw->lockdown_bar), GTK_MESSAGE_INFO);
++	{
++		GtkWidget *label = gtk_label_new (_("The panels have been locked down by your administrator. "
++						    "Their settings can be viewed but not changed."));
++
++		gtk_label_set_line_wrap (GTK_LABEL (label), TRUE);
++		gtk_label_set_xalign (GTK_LABEL (label), 0.0);
++		gtk_container_add (GTK_CONTAINER (gtk_info_bar_get_content_area (GTK_INFO_BAR (pw->lockdown_bar))), label);
++	}
++	gtk_widget_set_no_show_all (pw->lockdown_bar, TRUE);
++	gtk_widget_show (gtk_info_bar_get_content_area (GTK_INFO_BAR (pw->lockdown_bar)));
++	gtk_widget_show_all (gtk_info_bar_get_content_area (GTK_INFO_BAR (pw->lockdown_bar)));
++	gtk_box_pack_start (GTK_BOX (vbox), pw->lockdown_bar, FALSE, FALSE, 0);
++
++	top = gtk_box_new (GTK_ORIENTATION_HORIZONTAL, 6);
++	pw->combo = named (gtk_combo_box_text_new (), "panel-combo");
++	gtk_widget_set_hexpand (pw->combo, TRUE);
++	pw->add_panel = named (gtk_button_new_from_icon_name ("list-add", GTK_ICON_SIZE_BUTTON), "panel-add");
++	pw->remove_panel = named (gtk_button_new_from_icon_name ("list-remove", GTK_ICON_SIZE_BUTTON), "panel-remove");
++	gtk_widget_set_tooltip_text (pw->add_panel, _("Create a new panel"));
++	gtk_widget_set_tooltip_text (pw->remove_panel, _("Delete the selected panel"));
++	gtk_box_pack_start (GTK_BOX (top), make_label (_("_Panel:"), pw->combo), FALSE, FALSE, 0);
++	gtk_box_pack_start (GTK_BOX (top), pw->combo, TRUE, TRUE, 0);
++	gtk_box_pack_start (GTK_BOX (top), pw->add_panel, FALSE, FALSE, 0);
++	gtk_box_pack_start (GTK_BOX (top), pw->remove_panel, FALSE, FALSE, 0);
++	gtk_box_pack_start (GTK_BOX (vbox), top, FALSE, FALSE, 0);
++
++	pw->notebook = named (gtk_notebook_new (), "notebook");
++	pw->general_page = page_box ();
++	pw->background_page = page_box ();
++	pw->applets_page = page_box ();
++	gtk_notebook_append_page (GTK_NOTEBOOK (pw->notebook), pw->general_page, gtk_label_new (_("General")));
++	gtk_notebook_append_page (GTK_NOTEBOOK (pw->notebook), pw->background_page, gtk_label_new (_("Background")));
++	gtk_notebook_append_page (GTK_NOTEBOOK (pw->notebook), pw->applets_page, gtk_label_new (_("Applets")));
++	gtk_box_pack_start (GTK_BOX (vbox), pw->notebook, TRUE, TRUE, 0);
++
++	buttons = gtk_box_new (GTK_ORIENTATION_HORIZONTAL, 6);
++	help = dialog_button (_("_Help"), "help-browser", "help-button");
++	reset = dialog_button (_("Re_set Panels"), "edit-undo", "reset-button");
++	pw->reset_button = reset;
++	close = dialog_button (_("_Close"), "window-close", "close-button");
++	gtk_widget_set_tooltip_text (reset, _("Replace all panels with the default layout"));
++	gtk_box_pack_start (GTK_BOX (buttons), help, FALSE, FALSE, 0);
++	gtk_box_pack_start (GTK_BOX (buttons), reset, FALSE, FALSE, 0);
++	gtk_box_pack_end (GTK_BOX (buttons), close, FALSE, FALSE, 0);
++	gtk_box_pack_start (GTK_BOX (vbox), buttons, FALSE, FALSE, 0);
++
++	pw->general = pp_config_general ();
++
++	g_signal_connect (pw->combo, "changed", G_CALLBACK (combo_changed_cb), pw);
++	g_signal_connect (pw->add_panel, "clicked", G_CALLBACK (add_panel_clicked_cb), pw);
++	g_signal_connect (pw->remove_panel, "clicked", G_CALLBACK (remove_panel_clicked_cb), pw);
++	g_signal_connect (help, "clicked", G_CALLBACK (help_clicked_cb), pw);
++	g_signal_connect (reset, "clicked", G_CALLBACK (reset_clicked_cb), pw);
++	g_signal_connect (close, "clicked", G_CALLBACK (close_clicked_cb), pw);
++	g_signal_connect (pw->window, "notify::is-active", G_CALLBACK (window_active_cb), pw);
++	g_signal_connect (pw->window, "destroy", G_CALLBACK (window_destroy_cb), pw);
++	g_signal_connect (pw->general, "changed::toplevel-id-list", G_CALLBACK (panel_list_changed_cb), pw);
++	g_signal_connect (pw->general, "changed::object-id-list", G_CALLBACK (object_list_changed_cb), pw);
++	g_signal_connect (pw->general, "changed::locked-down", G_CALLBACK (lockdown_changed_cb), pw);
++
++	pw->watch_id = g_bus_watch_name (G_BUS_TYPE_SESSION, PP_PANEL_BUS_NAME, G_BUS_NAME_WATCHER_FLAGS_NONE,
++					 panel_appeared_cb, panel_vanished_cb, pw, NULL);
++
++	pw->monitors = pp_monitors_new (gtk_widget_get_display (pw->window));
++	pw->bus = g_bus_get_sync (G_BUS_TYPE_SESSION, NULL, NULL);
++	if (pw->bus != NULL)
++		pw->monitors_signal = g_dbus_connection_signal_subscribe (pw->bus, PP_PANEL_BUS_NAME,
++									  "org.mate.Panel.Shell", "MonitorsChanged",
++									  "/org/mate/panel/Shell", NULL,
++									  G_DBUS_SIGNAL_FLAGS_NONE,
++									  monitors_changed_cb, pw, NULL);
++	g_signal_connect (gtk_widget_get_display (pw->window), "monitor-added",
++			  G_CALLBACK (display_monitors_changed_cb), pw);
++	g_signal_connect (gtk_widget_get_display (pw->window), "monitor-removed",
++			  G_CALLBACK (display_monitors_changed_cb), pw);
++
++	pw->locked_down = g_settings_get_boolean (pw->general, "locked-down");
++	rebuild_combo (pw, NULL);
++	apply_lockdown (pw);
++
++	return pw->window;
++}
+diff --git a/capplets/panel/pp-window.h b/capplets/panel/pp-window.h
+new file mode 100644
+index 00000000..cb880a5a
+--- /dev/null
++++ b/capplets/panel/pp-window.h
+@@ -0,0 +1,23 @@
++/*
++ * pp-window.h: main window of the MATE panel properties tool
++ *
++ * Copyright (C) 2026 MATE Developers
++ *
++ * This program is free software; you can redistribute it and/or
++ * modify it under the terms of the GNU General Public License as
++ * published by the Free Software Foundation; either version 2 of the
++ * License, or (at your option) any later version.
++ */
++
++#ifndef PP_WINDOW_H
++#define PP_WINDOW_H
++
++#include <gtk/gtk.h>
++
++G_BEGIN_DECLS
++
++GtkWidget *pp_window_new (GtkApplication *application);
++
++G_END_DECLS
++
++#endif
+diff --git a/capplets/panel/test-panel-monitors.c b/capplets/panel/test-panel-monitors.c
+new file mode 100644
+index 00000000..adb2c354
+--- /dev/null
++++ b/capplets/panel/test-panel-monitors.c
+@@ -0,0 +1,187 @@
++/*
++ * test-panel-monitors.c: the capplet numbers and names monitors as the panel
++ * does, and its Monitor selector moves the selected panel.
++ *
++ * Copyright (C) 2026 MATE Developers
++ *
++ * This program is free software; you can redistribute it and/or
++ * modify it under the terms of the GNU General Public License as
++ * published by the Free Software Foundation; either version 2 of the
++ * License, or (at your option) any later version.
++ *
++ * It changes the panel settings, so it only runs in a test session that sets
++ * PP_TEST_MONITORS=N, and is skipped without a display. It expects N
++ * monitors, with PP_TEST_PANEL=1 the panel to be running, and with
++ * PP_TEST_CONNECTORS=1 each monitor to have a connector name.
++ */
++
++#include <config.h>
++
++#include <stdio.h>
++#include <stdlib.h>
++#include <string.h>
++
++#include <gtk/gtk.h>
++
++#include "pp-config.h"
++#include "pp-monitors.h"
++#include "pp-panel.h"
++#include "pp-window.h"
++
++#define CHECK(cond, ...) G_STMT_START {                                 \
++	if (!(cond)) {                                                  \
++		fprintf (stderr, "%s:%d: check failed: %s: ", __FILE__, \
++			 __LINE__, #cond);                              \
++		fprintf (stderr, __VA_ARGS__);                          \
++		fprintf (stderr, "\n");                                 \
++		exit (1);                                               \
++	}                                                               \
++} G_STMT_END
++
++static GtkWidget *
++find (GtkWidget *widget, const char *name)
++{
++	GList *children, *l;
++	GtkWidget *found = NULL;
++
++	if (g_strcmp0 (gtk_widget_get_name (widget), name) == 0)
++		return widget;
++	if (!GTK_IS_CONTAINER (widget))
++		return NULL;
++
++	children = gtk_container_get_children (GTK_CONTAINER (widget));
++	for (l = children; l != NULL && found == NULL; l = l->next)
++		found = find (l->data, name);
++	g_list_free (children);
++	return found;
++}
++
++static void
++spin (int ms)
++{
++	gint64 end = g_get_monotonic_time () + ms * 1000;
++
++	while (g_get_monotonic_time () < end)
++		g_main_context_iteration (NULL, FALSE);
++}
++
++static gboolean
++wait_for_monitor (GSettings *toplevel, int monitor)
++{
++	gint64 end = g_get_monotonic_time () + 5 * G_USEC_PER_SEC;
++
++	while (g_settings_get_int (toplevel, "monitor") != monitor && g_get_monotonic_time () < end)
++		g_main_context_iteration (NULL, FALSE);
++	return g_settings_get_int (toplevel, "monitor") == monitor;
++}
++
++static gboolean
++wait_for_active (GtkWidget *combo, int active)
++{
++	gint64 end = g_get_monotonic_time () + 5 * G_USEC_PER_SEC;
++
++	while (gtk_combo_box_get_active (GTK_COMBO_BOX (combo)) != active && g_get_monotonic_time () < end)
++		g_main_context_iteration (NULL, FALSE);
++	return gtk_combo_box_get_active (GTK_COMBO_BOX (combo)) == active;
++}
++
++static int
++count_rows (GtkWidget *combo)
++{
++	return gtk_tree_model_iter_n_children (gtk_combo_box_get_model (GTK_COMBO_BOX (combo)), NULL);
++}
++
++static char *
++active_text (GtkWidget *combo)
++{
++	return gtk_combo_box_text_get_active_text (GTK_COMBO_BOX_TEXT (combo));
++}
++
++int
++main (int argc, char **argv)
++{
++	const char *wanted = g_getenv ("PP_TEST_MONITORS");
++	gboolean with_panel = g_strcmp0 (g_getenv ("PP_TEST_PANEL"), "1") == 0;
++	gboolean connectors = g_strcmp0 (g_getenv ("PP_TEST_CONNECTORS"), "1") == 0;
++	GPtrArray *monitors;
++	GtkWidget *window, *panels, *monitor_combo;
++	GSettings *toplevel;
++	const char *toplevel_id;
++	const PpMonitor *target;
++	char *label, *text;
++	guint i;
++
++	if (wanted == NULL || !gtk_init_check (&argc, &argv) || !pp_config_available ())
++		return 77;
++
++	CHECK (pp_panel_is_running () == with_panel, "the panel is%s running",
++	       with_panel ? " not" : "");
++
++	monitors = pp_monitors_new (gdk_display_get_default ());
++	CHECK ((int) monitors->len == atoi (wanted), "%u monitors, not %s", monitors->len, wanted);
++	for (i = 0; i < monitors->len; i++) {
++		const PpMonitor *monitor = monitors->pdata[i];
++
++		CHECK (monitor->index == (int) i, "monitor %u has index %d", i, monitor->index);
++		CHECK (monitor->geometry.width > 0 && monitor->geometry.height > 0,
++		       "monitor %u has no size", i);
++		CHECK (monitor->primary == (i == 0), "monitor %u: primary %d", i, monitor->primary);
++		if (connectors)
++			CHECK (monitor->connector[0] != '\0', "monitor %u has no connector", i);
++		label = pp_monitor_label (monitor);
++		if (monitor->connector[0] != '\0')
++			CHECK (strstr (label, monitor->connector) != NULL, "label '%s' lacks %s",
++			       label, monitor->connector);
++		g_free (label);
++	}
++
++	window = pp_window_new (NULL);
++	gtk_widget_show_all (window);
++	spin (300);
++
++	panels = find (window, "panel-combo");
++	monitor_combo = find (window, "monitor-combo");
++	CHECK (panels != NULL && monitor_combo != NULL, "no panel or monitor selector");
++	CHECK (count_rows (monitor_combo) >= (int) monitors->len, "%d monitors listed, %u known",
++	       count_rows (monitor_combo), monitors->len);
++	CHECK (gtk_widget_get_sensitive (monitor_combo) == (monitors->len > 1),
++	       "the monitor selector is%s sensitive with %u monitors",
++	       gtk_widget_get_sensitive (monitor_combo) ? "" : " not", monitors->len);
++
++	toplevel_id = gtk_combo_box_get_active_id (GTK_COMBO_BOX (panels));
++	CHECK (toplevel_id != NULL, "no panel selected");
++	toplevel = pp_config_toplevel (toplevel_id);
++
++	if (monitors->len > 1) {
++		int from = g_settings_get_int (toplevel, "monitor");
++
++		target = pp_monitors_lookup (monitors, from == 0 ? 1 : 0);
++		gtk_combo_box_set_active (GTK_COMBO_BOX (monitor_combo), target->index);
++		CHECK (wait_for_monitor (toplevel, target->index),
++		       "the panel's monitor is %d, not %d",
++		       g_settings_get_int (toplevel, "monitor"), target->index);
++		if (target->id[0] != '\0') {
++			char *id = g_settings_get_string (toplevel, "monitor-id");
++
++			CHECK (g_strcmp0 (id, target->id) == 0, "monitor-id is '%s', not '%s'", id, target->id);
++			g_free (id);
++		}
++
++		label = pp_monitor_label (target);
++		text = active_text (panels);
++		CHECK (text != NULL && strstr (text, label) != NULL, "the panel is listed as '%s', not on %s",
++		       text, label);
++		g_free (text);
++		g_free (label);
++
++		g_settings_set_int (toplevel, "monitor", from);
++		CHECK (wait_for_active (monitor_combo, from),
++		       "the selector did not follow a move made elsewhere");
++	}
++
++	g_object_unref (toplevel);
++	gtk_widget_destroy (window);
++	g_ptr_array_unref (monitors);
++	printf ("ok\n");
++	return 0;
++}
+diff --git a/configure.ac b/configure.ac
+index 0af22fe4..f402baea 100644
+--- a/configure.ac
++++ b/configure.ac
+@@ -321,6 +321,7 @@ capplets/network/Makefile
+ capplets/time-admin/Makefile
+ capplets/time-admin/src/Makefile
+ capplets/time-admin/data/Makefile
++capplets/panel/Makefile
+ capplets/windows/Makefile
+ font-viewer/Makefile
+ help/Makefile
+diff --git a/po/POTFILES.in b/po/POTFILES.in
+index 8b632200..5d79d488 100644
+--- a/po/POTFILES.in
++++ b/po/POTFILES.in
+@@ -70,6 +70,12 @@ capplets/system-info/mate-system-info.desktop.in
+ capplets/network/mate-network-properties.c
+ capplets/network/mate-network-properties.desktop.in
+ capplets/network/mate-network-properties.ui
++capplets/panel/mate-panel-properties.c
++capplets/panel/mate-panel-properties.desktop.in
++capplets/panel/pp-config.c
++capplets/panel/pp-monitors.c
++capplets/panel/pp-panel.c
++capplets/panel/pp-window.c
+ capplets/windows/mate-metacity-support.c
+ capplets/windows/mate-window-properties.c
+ capplets/windows/mate-window-properties.desktop.in

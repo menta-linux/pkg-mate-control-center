@@ -1,0 +1,793 @@
+Description: mouse: do not crash and work on Wayland (PR 842, rebased on master)
+Author: mate-desktop contributors
+Origin: https://github.com/mate-desktop/mate-control-center/pull/842
+Forwarded: not-needed
+---
+diff --git a/capplets/mouse/Makefile.am b/capplets/mouse/Makefile.am
+index 0fee735e..e69406c4 100644
+--- a/capplets/mouse/Makefile.am
++++ b/capplets/mouse/Makefile.am
+@@ -7,12 +7,25 @@ bin_PROGRAMS = mate-mouse-properties
+ 
+ mate_mouse_properties_LDADD = $(MATECC_CAPPLETS_LIBS)
+ BUILT_SOURCES = mate-mouse-properties-resources.h mate-mouse-properties-resources.c
++if HAVE_WAYLAND_PROTOCOLS
++BUILT_SOURCES += \
++	mate-input-device-v1-client-protocol.h \
++	mate-input-device-v1-protocol.c
++mate_mouse_properties_LDADD += $(MOUSE_WAYLAND_LIBS)
++endif
+ nodist_mate_mouse_properties_SOURCES = \
+ 	$(BUILT_SOURCES)
+ mate_mouse_properties_SOURCES =	\
+ 	mate-mouse-properties.c	\
+ 	msd-input-helper.c	\
+-	msd-input-helper.h
++	msd-input-helper.h	\
++	msd-input-wayland.c	\
++	msd-input-wayland.h
++
++mate-input-device-v1-client-protocol.h: $(MATE_WAYLAND_PROTOCOLS_DIR)/mate-input-device-v1.xml
++	$(AM_V_GEN) $(WAYLAND_SCANNER) client-header $< $@
++mate-input-device-v1-protocol.c: $(MATE_WAYLAND_PROTOCOLS_DIR)/mate-input-device-v1.xml
++	$(AM_V_GEN) $(WAYLAND_SCANNER) private-code $< $@
+ 
+ include $(top_srcdir)/gla11y.mk
+ 
+@@ -33,6 +46,7 @@ mate-mouse-properties-resources.h mate-mouse-properties-resources.c: org.mate.mc
+ AM_CPPFLAGS = \
+ 	$(WARN_CFLAGS) \
+ 	$(MATECC_CAPPLETS_CFLAGS) \
++	$(MOUSE_WAYLAND_CFLAGS) \
+ 	-DMATECC_DATA_DIR="\"$(pkgdatadir)\""
+ CLEANFILES = $(MATECC_CAPPLETS_CLEANFILES) $(desktop_DATA) $(BUILT_SOURCES)
+ EXTRA_DIST = \
+diff --git a/capplets/mouse/mate-mouse-properties.c b/capplets/mouse/mate-mouse-properties.c
+index 15e81292..23c37e26 100644
+--- a/capplets/mouse/mate-mouse-properties.c
++++ b/capplets/mouse/mate-mouse-properties.c
+@@ -171,6 +171,59 @@ orientation_radio_button_toggled (GtkToggleButton *togglebutton,
+ 	g_settings_set_boolean (mouse_settings, "left-handed", left_handed);
+ }
+ 
++static gboolean
++lacks_fingers (gboolean touchpads, guint fingers)
++{
++	InputDeviceDescription support;
++
++	return pointer_support (touchpads, &support) && support.tap_fingers < fingers;
++}
++
++static void
++grey_out (GtkBuilder *dialog, const char *name, gboolean supported)
++{
++	if (!supported)
++		gtk_widget_set_sensitive (WID (name), FALSE);
++}
++
++/* Without X, grey out what none of the devices supports */
++static void
++grey_unsupported (GtkBuilder *dialog, gboolean touchpads)
++{
++	InputDeviceDescription support;
++
++	if (GDK_IS_X11_DISPLAY (gdk_display_get_default ()) || !pointer_support (touchpads, &support))
++		return;
++
++	if (touchpads) {
++		grey_out (dialog, "tap_to_click_toggle", support.config & INPUT_CONFIG_TAP);
++		grey_out (dialog, "disable_w_typing_toggle", support.config & INPUT_CONFIG_DWT);
++		grey_out (dialog, "natural_scroll_toggle", support.config & INPUT_CONFIG_NATURAL_SCROLL);
++		grey_out (dialog, "vert_edge_scroll_toggle", support.scroll_methods & INPUT_SCROLL_EDGE);
++		grey_out (dialog, "horiz_edge_scroll_toggle", support.scroll_methods & INPUT_SCROLL_EDGE);
++		grey_out (dialog, "vert_twofinger_scroll_toggle", support.scroll_methods & INPUT_SCROLL_TWO_FINGER);
++		grey_out (dialog, "horiz_twofinger_scroll_toggle", support.scroll_methods & INPUT_SCROLL_TWO_FINGER);
++		grey_out (dialog, "touchpad_accel_scale", support.config & INPUT_CONFIG_ACCEL_SPEED);
++		grey_out (dialog, "label6", support.tap_fingers >= 2);
++		grey_out (dialog, "hbox_two_finger_click", support.tap_fingers >= 2);
++	} else {
++		grey_out (dialog, "right_handed_radio", support.config & INPUT_CONFIG_LEFT_HANDED);
++		grey_out (dialog, "left_handed_radio", support.config & INPUT_CONFIG_LEFT_HANDED);
++		grey_out (dialog, "middle_button_emulation_toggle", support.config & INPUT_CONFIG_MIDDLE_EMULATION);
++		grey_out (dialog, "mouse_natural_scroll_toggle", support.config & INPUT_CONFIG_NATURAL_SCROLL);
++		grey_out (dialog, "accel_scale", support.config & INPUT_CONFIG_ACCEL_SPEED);
++		grey_out (dialog, "mouse_accel_profile", support.accel_profiles != 0);
++	}
++}
++
++/* A touchpad without a physical left button needs tap-to-click */
++static void
++force_tap_to_click (GtkBuilder *dialog)
++{
++	gtk_toggle_button_set_active (GTK_TOGGLE_BUTTON (gtk_builder_get_object (dialog, "tap_to_click_toggle")), TRUE);
++	gtk_widget_set_sensitive (WID ("tap_to_click_toggle"), FALSE);
++}
++
+ static void
+ synaptics_check_capabilities (GtkBuilder *dialog)
+ {
+@@ -183,6 +236,12 @@ synaptics_check_capabilities (GtkBuilder *dialog)
+ 	unsigned char *data;
+ 
+ 	display = gdk_display_get_default ();
++	if (!GDK_IS_X11_DISPLAY (display)) {
++		if (touchpad_lacks_left_button ())
++			force_tap_to_click (dialog);
++		return;
++	}
++
+ 	prop = XInternAtom (GDK_DISPLAY_XDISPLAY(display), "Synaptics Capabilities", True);
+ 	if (!prop)
+ 		return;
+@@ -204,10 +263,8 @@ synaptics_check_capabilities (GtkBuilder *dialog)
+ 					 &bytes_after, &data) == Success) && (realtype != None)) {
+ 			/* Property data is booleans for has_left, has_middle,
+ 			 * has_right, has_double, has_triple */
+-			if (!data[0]) {
+-				gtk_toggle_button_set_active (GTK_TOGGLE_BUTTON (gtk_builder_get_object (dialog, "tap_to_click_toggle")), TRUE);
+-				gtk_widget_set_sensitive (WID ("tap_to_click_toggle"), FALSE);
+-			}
++			if (!data[0])
++				force_tap_to_click (dialog);
+ 
+ 			XFree (data);
+ 		}
+@@ -308,6 +365,12 @@ setup_dialog (GtkBuilder *dialog)
+ 	                 gtk_range_get_adjustment (GTK_RANGE (gtk_builder_get_object (dialog, "sensitivity_scale"))), "value",
+ 	                 G_SETTINGS_BIND_DEFAULT);
+ 
++	/* Hide the threshold where libinput drives the mice: it has none */
++	if (pointer_threshold_ignored (FALSE)) {
++		gtk_widget_hide (WID ("sensitivity_label"));
++		gtk_widget_hide (WID ("hbox3"));
++	}
++
+ 	g_signal_connect (WID ("mouse_accel_profile"), "changed",
+ 			  G_CALLBACK (accel_profile_combobox_changed_callback),
+ 	                  NULL);
+@@ -376,6 +439,18 @@ setup_dialog (GtkBuilder *dialog)
+ 		gtk_widget_show (two_click_comboxbox);
+ 		gtk_widget_show (three_click_comboxbox);
+ 
++		/* On Wayland the compositor's libinput fixes a two-finger tap to
++		 * the right button, so with tapping on, two-finger click emulation
++		 * has nothing to choose. */
++		if (!GDK_IS_X11_DISPLAY (gdk_display_get_default ()) && !lacks_fingers (TRUE, 2)) {
++			g_settings_bind (touchpad_settings, "tap-to-click",
++			                 WID ("label6"), "sensitive",
++			                 G_SETTINGS_BIND_GET | G_SETTINGS_BIND_INVERT_BOOLEAN);
++			g_settings_bind (touchpad_settings, "tap-to-click",
++			                 WID ("hbox_two_finger_click"), "sensitive",
++			                 G_SETTINGS_BIND_GET | G_SETTINGS_BIND_INVERT_BOOLEAN);
++		}
++
+ 		/* speed */
+ 		g_settings_bind (touchpad_settings, "motion-acceleration",
+ 		                 gtk_range_get_adjustment (GTK_RANGE (gtk_builder_get_object (dialog, "touchpad_accel_scale"))), "value",
+@@ -383,10 +458,16 @@ setup_dialog (GtkBuilder *dialog)
+ 		g_settings_bind (touchpad_settings, "motion-threshold",
+ 		                 gtk_range_get_adjustment (GTK_RANGE (gtk_builder_get_object (dialog, "touchpad_sensitivity_scale"))), "value",
+ 		                 G_SETTINGS_BIND_DEFAULT);
++		if (pointer_threshold_ignored (TRUE)) {
++			gtk_widget_hide (WID ("touchpad_sensitivity_label"));
++			gtk_widget_hide (WID ("hbox31"));
++		}
+ 
++		grey_unsupported (dialog, TRUE);
+ 		synaptics_check_capabilities (dialog);
+ 	}
+ 
++	grey_unsupported (dialog, FALSE);
+ }
+ 
+ /* Callback issued when a button is clicked on the dialog */
+diff --git a/capplets/mouse/meson.build b/capplets/mouse/meson.build
+index dfa9072e..5026412d 100644
+--- a/capplets/mouse/meson.build
++++ b/capplets/mouse/meson.build
+@@ -11,9 +11,27 @@ i18n.merge_file(
+ 
+ sources = files(
+   'mate-mouse-properties.c',
+-  'msd-input-helper.c'
++  'msd-input-helper.c',
++  'msd-input-wayland.c',
+ )
+ 
++mouse_deps = [common_deps, libcommon_dep, xi_dep]
++
++if have_wayland_protocols
++  input_device_xml = mate_wayland_protocols_dep.get_variable(pkgconfig: 'pkgdatadir') / 'mate-input-device-v1.xml'
++  sources += custom_target('mate-input-device-v1-client-header',
++    input: input_device_xml,
++    output: 'mate-input-device-v1-client-protocol.h',
++    command: [wayland_scanner, 'client-header', '@INPUT@', '@OUTPUT@'],
++  )
++  sources += custom_target('mate-input-device-v1-protocol-code',
++    input: input_device_xml,
++    output: 'mate-input-device-v1-protocol.c',
++    command: [wayland_scanner, 'private-code', '@INPUT@', '@OUTPUT@'],
++  )
++  mouse_deps += wayland_client_dep
++endif
++
+ sources += gnome.compile_resources(
+   'mate-mouse-properties-resources',
+   'org.mate.mcc.mouse.gresource.xml',
+@@ -29,7 +47,7 @@ executable(
+   'mate-mouse-properties',
+   sources : sources,
+   include_directories: config_inc,
+-  dependencies : [common_deps, libcommon_dep, xi_dep],
++  dependencies : mouse_deps,
+   c_args : cflags,
+   install : true,
+   install_dir : get_option('bindir')
+diff --git a/capplets/mouse/msd-input-helper.c b/capplets/mouse/msd-input-helper.c
+index 7dc0d996..d63ebe6c 100644
+--- a/capplets/mouse/msd-input-helper.c
++++ b/capplets/mouse/msd-input-helper.c
+@@ -23,11 +23,88 @@
+ #include <gdk/gdk.h>
+ #include <gdk/gdkx.h>
+ 
++#include <string.h>
+ #include <sys/types.h>
+ #include <X11/Xatom.h>
+ 
+ #include "msd-input-helper.h"
+ 
++/* Without X the compositor owns the input devices; it may describe them
++ * through mate_input_device_manager_v1 (see msd-input-wayland.c). */
++
++static gboolean
++kind_matches (guint kind, gboolean touchpads)
++{
++        if (touchpads)
++                return kind == INPUT_KIND_TOUCHPAD;
++
++        return kind == INPUT_KIND_MOUSE || kind == INPUT_KIND_TRACKBALL ||
++               kind == INPUT_KIND_POINTING_STICK;
++}
++
++/* Without X: whether a touchpad is listed; TRUE when nobody lists devices. */
++static gboolean
++input_devices_have_touchpad (void)
++{
++        GArray *devices = input_devices_describe ();
++        guint i;
++
++        if (devices == NULL)
++                return TRUE;
++
++        for (i = 0; i < devices->len; i++)
++                if (g_array_index (devices, InputDeviceDescription, i).kind == INPUT_KIND_TOUCHPAD)
++                        return TRUE;
++
++        return FALSE;
++}
++
++gboolean
++touchpad_lacks_left_button (void)
++{
++        GArray *devices = input_devices_describe ();
++        guint i;
++
++        if (devices == NULL)
++                return FALSE;
++
++        for (i = 0; i < devices->len; i++) {
++                InputDeviceDescription *device = &g_array_index (devices, InputDeviceDescription, i);
++
++                if (device->kind == INPUT_KIND_TOUCHPAD && !(device->buttons & INPUT_BUTTON_LEFT))
++                        return TRUE;
++        }
++
++        return FALSE;
++}
++
++gboolean
++pointer_support (gboolean touchpads, InputDeviceDescription *support)
++{
++        GArray *devices = input_devices_describe ();
++        gboolean found = FALSE;
++        guint i;
++
++        memset (support, 0, sizeof (*support));
++        if (devices == NULL)
++                return FALSE;
++
++        for (i = 0; i < devices->len; i++) {
++                InputDeviceDescription *device = &g_array_index (devices, InputDeviceDescription, i);
++
++                if (!kind_matches (device->kind, touchpads))
++                        continue;
++
++                found = TRUE;
++                support->config |= device->config;
++                support->accel_profiles |= device->accel_profiles;
++                support->scroll_methods |= device->scroll_methods;
++                support->tap_fingers = MAX (support->tap_fingers, device->tap_fingers);
++        }
++
++        return found;
++}
++
+ gboolean
+ supports_xinput_devices (void)
+ {
+@@ -92,6 +169,78 @@ device_is_touchpad (XDeviceInfo *deviceinfo)
+         return NULL;
+ }
+ 
++static gboolean
++device_is_driven_by_libinput (XDeviceInfo *deviceinfo)
++{
++        GdkDisplay *display = gdk_display_get_default ();
++        XDevice *device;
++        gboolean libinput;
++
++        /* Xwayland's devices stand for the compositor's, which use libinput */
++        if (g_str_has_prefix (deviceinfo->name, "xwayland-"))
++                return TRUE;
++
++        gdk_x11_display_error_trap_push (display);
++        device = XOpenDevice (GDK_DISPLAY_XDISPLAY (display), deviceinfo->id);
++        if (gdk_x11_display_error_trap_pop (display) || (device == NULL))
++                return FALSE;
++
++        /* xf86-input-libinput sets this on every device it drives */
++        libinput = device_has_property (device, "libinput Send Events Modes Available");
++        XCloseDevice (GDK_DISPLAY_XDISPLAY (display), device);
++
++        return libinput;
++}
++
++/*
++ * libinput has no motion threshold, only an acceleration speed and profile,
++ * so the threshold setting does nothing for devices it drives: always outside
++ * X11, and under X11 with xf86-input-libinput. Under X11 the answer is TRUE
++ * only when there is at least one such pointer and all of them use libinput;
++ * a device on evdev or synaptics still honours the threshold.
++ */
++gboolean
++pointer_threshold_ignored (gboolean touchpads)
++{
++        GdkDisplay *display = gdk_display_get_default ();
++        Atom touchpad_type;
++        XDeviceInfo *device_info;
++        gint n_devices, i;
++        gint n_matching = 0;
++        gboolean all_libinput = TRUE;
++
++        if (!GDK_IS_X11_DISPLAY (display))
++                return TRUE;
++
++        if (supports_xinput_devices () == FALSE)
++                return FALSE;
++
++        touchpad_type = XInternAtom (GDK_DISPLAY_XDISPLAY (display), XI_TOUCHPAD, True);
++        device_info = XListInputDevices (GDK_DISPLAY_XDISPLAY (display), &n_devices);
++        if (device_info == NULL)
++                return FALSE;
++
++        for (i = 0; i < n_devices && all_libinput; i++) {
++                gboolean is_touchpad;
++
++                if (device_info[i].use != IsXExtensionPointer)
++                        continue;
++                /* The XTEST pointer is a virtual device of the X server */
++                if (strstr (device_info[i].name, "XTEST") != NULL)
++                        continue;
++
++                is_touchpad = touchpad_type != None && device_info[i].type == touchpad_type;
++                if (is_touchpad != touchpads)
++                        continue;
++
++                n_matching++;
++                all_libinput = device_is_driven_by_libinput (&device_info[i]);
++        }
++        XFreeDeviceList (device_info);
++
++        return n_matching > 0 && all_libinput;
++}
++
+ gboolean
+ touchpad_is_present (void)
+ {
+@@ -100,6 +249,9 @@ touchpad_is_present (void)
+         guint i;
+         gboolean retval;
+ 
++        if (!GDK_IS_X11_DISPLAY (gdk_display_get_default ()))
++                return input_devices_have_touchpad ();
++
+         if (supports_xinput_devices () == FALSE)
+                 return TRUE;
+ 
+diff --git a/capplets/mouse/msd-input-helper.h b/capplets/mouse/msd-input-helper.h
+index e46c97e1..951f4cda 100644
+--- a/capplets/mouse/msd-input-helper.h
++++ b/capplets/mouse/msd-input-helper.h
+@@ -27,9 +27,18 @@ G_BEGIN_DECLS
+ #include <X11/extensions/XInput.h>
+ #include <X11/extensions/XIproto.h>
+ 
++#include "msd-input-wayland.h"
++
+ gboolean  supports_xinput_devices (void);
+ XDevice  *device_is_touchpad      (XDeviceInfo *deviceinfo);
+ gboolean  touchpad_is_present     (void);
++/* Without X: whether a listed touchpad cannot click (tap only) */
++gboolean  touchpad_lacks_left_button (void);
++/* Whether the touchpads (or the other pointers) ignore a motion threshold */
++gboolean  pointer_threshold_ignored (gboolean touchpads);
++/* Without X: what the touchpads (or the other pointers) support between them;
++ * FALSE when the compositor does not say or none is plugged in */
++gboolean  pointer_support (gboolean touchpads, InputDeviceDescription *support);
+ 
+ G_END_DECLS
+ 
+diff --git a/capplets/mouse/msd-input-wayland.c b/capplets/mouse/msd-input-wayland.c
+new file mode 100644
+index 00000000..58588e42
+--- /dev/null
++++ b/capplets/mouse/msd-input-wayland.c
+@@ -0,0 +1,271 @@
++/*
++ * Copyright (C) 2026 MATE developers
++ *
++ * This program is free software; you can redistribute it and/or modify
++ * it under the terms of the GNU General Public License as published by
++ * the Free Software Foundation; either version 2 of the License, or
++ * (at your option) any later version.
++ *
++ * This program is distributed in the hope that it will be useful,
++ * but WITHOUT ANY WARRANTY; without even the implied warranty of
++ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
++ * GNU General Public License for more details.
++ *
++ * You should have received a copy of the GNU General Public License
++ * along with this program; if not, write to the Free Software
++ * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
++ * 02110-1301, USA.
++ */
++
++#include <config.h>
++
++#include <gdk/gdk.h>
++
++#include "msd-input-wayland.h"
++
++#ifdef HAVE_WAYLAND_PROTOCOLS
++
++#include <gdk/gdkwayland.h>
++#include <wayland-client.h>
++
++#include "mate-input-device-v1-client-protocol.h"
++
++#define MAX_ROUNDTRIPS 10
++
++typedef struct {
++        struct mate_input_device_manager_v1 *manager;
++        GPtrArray *devices;
++        gboolean   done;
++} Listing;
++
++typedef struct {
++        struct mate_input_device_v1 *proxy;
++        InputDeviceDescription       description;
++} Device;
++
++static void
++device_name (void *data, struct mate_input_device_v1 *proxy, const char *name)
++{
++}
++
++static void
++device_id (void *data, struct mate_input_device_v1 *proxy, const char *id)
++{
++}
++
++static void
++device_usb_ids (void *data, struct mate_input_device_v1 *proxy, uint32_t vendor, uint32_t product)
++{
++}
++
++static void
++device_kind (void *data, struct mate_input_device_v1 *proxy, uint32_t kind)
++{
++        ((Device *) data)->description.kind = kind;
++}
++
++static void
++device_capabilities (void *data, struct mate_input_device_v1 *proxy, uint32_t capabilities)
++{
++}
++
++static void
++device_buttons (void *data, struct mate_input_device_v1 *proxy, uint32_t buttons)
++{
++        ((Device *) data)->description.buttons = buttons;
++}
++
++static void
++device_config (void *data, struct mate_input_device_v1 *proxy, uint32_t config)
++{
++        ((Device *) data)->description.config = config;
++}
++
++static void
++device_tap_fingers (void *data, struct mate_input_device_v1 *proxy, uint32_t fingers)
++{
++        ((Device *) data)->description.tap_fingers = fingers;
++}
++
++static void
++device_accel_profiles (void *data, struct mate_input_device_v1 *proxy, uint32_t profiles)
++{
++        ((Device *) data)->description.accel_profiles = profiles;
++}
++
++static void
++device_scroll_methods (void *data, struct mate_input_device_v1 *proxy, uint32_t methods)
++{
++        ((Device *) data)->description.scroll_methods = methods;
++}
++
++static void
++device_click_methods (void *data, struct mate_input_device_v1 *proxy, uint32_t methods)
++{
++}
++
++static void
++device_send_events (void *data, struct mate_input_device_v1 *proxy, uint32_t modes)
++{
++}
++
++static void
++device_output (void *data, struct mate_input_device_v1 *proxy, const char *output)
++{
++}
++
++static void
++device_done (void *data, struct mate_input_device_v1 *proxy)
++{
++}
++
++static void
++device_removed (void *data, struct mate_input_device_v1 *proxy)
++{
++}
++
++static const struct mate_input_device_v1_listener device_listener = {
++        .name = device_name,
++        .id = device_id,
++        .usb_ids = device_usb_ids,
++        .kind = device_kind,
++        .capabilities = device_capabilities,
++        .buttons = device_buttons,
++        .config = device_config,
++        .tap_fingers = device_tap_fingers,
++        .accel_profiles = device_accel_profiles,
++        .scroll_methods = device_scroll_methods,
++        .click_methods = device_click_methods,
++        .send_events = device_send_events,
++        .output = device_output,
++        .done = device_done,
++        .removed = device_removed,
++};
++
++static void
++manager_device (void *data, struct mate_input_device_manager_v1 *manager, struct mate_input_device_v1 *proxy)
++{
++        Listing *listing = data;
++        Device *device = g_new0 (Device, 1);
++
++        device->proxy = proxy;
++        mate_input_device_v1_add_listener (proxy, &device_listener, device);
++        g_ptr_array_add (listing->devices, device);
++}
++
++static void
++manager_done (void *data, struct mate_input_device_manager_v1 *manager)
++{
++        ((Listing *) data)->done = TRUE;
++}
++
++static void
++manager_finished (void *data, struct mate_input_device_manager_v1 *manager)
++{
++        ((Listing *) data)->done = TRUE;
++}
++
++static const struct mate_input_device_manager_v1_listener manager_listener = {
++        .device = manager_device,
++        .done = manager_done,
++        .finished = manager_finished,
++};
++
++static void
++registry_global (void *data, struct wl_registry *registry, uint32_t name, const char *interface, uint32_t version)
++{
++        Listing *listing = data;
++
++        if (listing->manager == NULL &&
++            g_strcmp0 (interface, mate_input_device_manager_v1_interface.name) == 0)
++                listing->manager = wl_registry_bind (registry, name, &mate_input_device_manager_v1_interface, 1);
++}
++
++static void
++registry_global_remove (void *data, struct wl_registry *registry, uint32_t name)
++{
++}
++
++static const struct wl_registry_listener registry_listener = {
++        .global = registry_global,
++        .global_remove = registry_global_remove,
++};
++
++static GArray *
++list_devices (void)
++{
++        GdkDisplay *gdk_display = gdk_display_get_default ();
++        struct wl_display *display;
++        struct wl_event_queue *queue;
++        struct wl_display *wrapper;
++        struct wl_registry *registry;
++        Listing listing = { NULL, NULL, FALSE };
++        GArray *devices = NULL;
++        guint i;
++
++        if (!GDK_IS_WAYLAND_DISPLAY (gdk_display))
++                return NULL;
++
++        display = gdk_wayland_display_get_wl_display (gdk_display);
++        queue = wl_display_create_queue (display);
++        wrapper = wl_proxy_create_wrapper (display);
++        wl_proxy_set_queue ((struct wl_proxy *) wrapper, queue);
++        registry = wl_display_get_registry (wrapper);
++        wl_registry_add_listener (registry, &registry_listener, &listing);
++        listing.devices = g_ptr_array_new_with_free_func (g_free);
++
++        wl_display_roundtrip_queue (display, queue);
++
++        if (listing.manager != NULL) {
++                mate_input_device_manager_v1_add_listener (listing.manager, &manager_listener, &listing);
++                for (i = 0; i < MAX_ROUNDTRIPS && !listing.done; i++) {
++                        if (wl_display_roundtrip_queue (display, queue) < 0)
++                                break;
++                }
++
++                if (listing.done) {
++                        devices = g_array_new (FALSE, TRUE, sizeof (InputDeviceDescription));
++                        for (i = 0; i < listing.devices->len; i++) {
++                                Device *device = g_ptr_array_index (listing.devices, i);
++
++                                g_array_append_val (devices, device->description);
++                        }
++                }
++
++                for (i = 0; i < listing.devices->len; i++)
++                        mate_input_device_v1_destroy (((Device *) g_ptr_array_index (listing.devices, i))->proxy);
++                mate_input_device_manager_v1_destroy (listing.manager);
++        }
++
++        g_ptr_array_free (listing.devices, TRUE);
++        wl_registry_destroy (registry);
++        wl_proxy_wrapper_destroy (wrapper);
++        wl_display_flush (display);
++        wl_event_queue_destroy (queue);
++
++        return devices;
++}
++
++#else
++
++static GArray *
++list_devices (void)
++{
++        return NULL;
++}
++
++#endif
++
++GArray *
++input_devices_describe (void)
++{
++        static gboolean listed = FALSE;
++        static GArray *devices = NULL;
++
++        if (!listed) {
++                devices = list_devices ();
++                listed = TRUE;
++        }
++
++        return devices;
++}
+diff --git a/capplets/mouse/msd-input-wayland.h b/capplets/mouse/msd-input-wayland.h
+new file mode 100644
+index 00000000..92f29bbe
+--- /dev/null
++++ b/capplets/mouse/msd-input-wayland.h
+@@ -0,0 +1,68 @@
++/*
++ * Copyright (C) 2026 MATE developers
++ *
++ * This program is free software; you can redistribute it and/or modify
++ * it under the terms of the GNU General Public License as published by
++ * the Free Software Foundation; either version 2 of the License, or
++ * (at your option) any later version.
++ *
++ * This program is distributed in the hope that it will be useful,
++ * but WITHOUT ANY WARRANTY; without even the implied warranty of
++ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
++ * GNU General Public License for more details.
++ *
++ * You should have received a copy of the GNU General Public License
++ * along with this program; if not, write to the Free Software
++ * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
++ * 02110-1301, USA.
++ */
++
++#ifndef __MSD_INPUT_WAYLAND_H
++#define __MSD_INPUT_WAYLAND_H
++
++#include <glib.h>
++
++G_BEGIN_DECLS
++
++/* The values of mate_input_device_v1 (mate-input-device-v1.xml). */
++enum {
++        INPUT_KIND_MOUSE          = 2,
++        INPUT_KIND_TOUCHPAD       = 3,
++        INPUT_KIND_POINTING_STICK = 4,
++        INPUT_KIND_TRACKBALL      = 5
++};
++
++enum {
++        INPUT_BUTTON_LEFT = 1 << 0
++};
++
++enum {
++        INPUT_CONFIG_TAP              = 1 << 0,
++        INPUT_CONFIG_DWT              = 1 << 3,
++        INPUT_CONFIG_NATURAL_SCROLL   = 1 << 5,
++        INPUT_CONFIG_LEFT_HANDED      = 1 << 6,
++        INPUT_CONFIG_MIDDLE_EMULATION = 1 << 7,
++        INPUT_CONFIG_ACCEL_SPEED      = 1 << 8
++};
++
++enum {
++        INPUT_SCROLL_TWO_FINGER = 1 << 0,
++        INPUT_SCROLL_EDGE       = 1 << 1
++};
++
++typedef struct {
++        guint kind;
++        guint buttons;
++        guint config;
++        guint tap_fingers;
++        guint accel_profiles;
++        guint scroll_methods;
++} InputDeviceDescription;
++
++/* The devices the compositor describes, or NULL when it offers no
++ * mate_input_device_manager_v1. Owned by the function; do not free. */
++GArray *input_devices_describe (void);
++
++G_END_DECLS
++
++#endif /* __MSD_INPUT_WAYLAND_H */
+diff --git a/configure.ac b/configure.ac
+index 6ba09a64..0af22fe4 100644
+--- a/configure.ac
++++ b/configure.ac
+@@ -210,6 +210,7 @@ if test "x$enable_wayland" != "xno"; then
+ fi
+ if test "x$have_wayland_protocols" = "xyes"; then
+     DISPLAY_WAYLAND_MODULES=wayland-client
++    PKG_CHECK_MODULES(MOUSE_WAYLAND, wayland-client)
+     MATE_WAYLAND_PROTOCOLS_DIR=`$PKG_CONFIG --variable=pkgdatadir mate-wayland-protocols`
+     AC_SUBST(MATE_WAYLAND_PROTOCOLS_DIR)
+     AC_DEFINE(HAVE_WAYLAND_PROTOCOLS, 1, [Define to talk to Wayland compositors through the MATE output protocol])

@@ -1,3 +1,53 @@
+mate-control-center (1.29.1+git20261118.6779122-1menta1) unstable; urgency=medium
+
+  * Build from upstream master 6779122 (the Wayland display capplet,
+    PR 843, is upstream now).
+  * rules: configure with -Dwayland=enabled so the build fails instead of
+    silently skipping Wayland support.
+  * control: Build-Depend on libgtk-layer-shell-dev and on the new
+    libmate-desktop-dev / mate-settings-daemon-dev (>= 1.29.1); libmarco-dev
+    (>= 1.29).
+  * Patches (rebased on master): 3001 mouse on Wayland (PR 842), 3002
+    typing-break on Wayland (PR 841), 3003 panel properties capplet
+    (PR 845), 3004 windows capplet on Marco-settings Wayland compositors
+    (commit b4186a7). Debian 2001/2002 are kept (not upstream).
+
+ -- Menta Linux <packages@menta-linux.invalid>  Sun, 22 Nov 2026 12:00:00 -0700
+
+mate-control-center (1.29.1+git20261115.fa87b1c-1menta1) unstable; urgency=medium
+
+  * Build from upstream master fa87b1c (PRs 839 and 840 are upstream
+    now); drop old 3001-3006.
+  * Patches: 841 (typing-break Wayland), 842 (mouse Wayland), and
+    KeremSoke commit b4186a7 (windows capplet on Marco-settings Wayland
+    compositors).
+
+ -- Menta Linux <packages@menta-linux.invalid>  Sun, 15 Nov 2026 00:10:03 -0700
+
+mate-control-center (1.28.2-1menta3) unstable; urgency=medium
+
+  * Add 3006: guard X11 atom/window calls in wm-common.c on Wayland (as
+    on upstream master); fixes SIGSEGV in mate-keybinding-properties.
+
+ -- Menta Linux <packages@menta-linux.invalid>  Sun, 15 Nov 2026 00:07:12 -0700
+
+mate-control-center (1.28.2-1menta2) unstable; urgency=medium
+
+  * Add mate-control-center PR 842: mouse capplet no longer crashes on
+    Wayland (3005).
+
+ -- Menta Linux <packages@menta-linux.invalid>  Sat, 14 Nov 2026 18:40:34 -0700
+
+mate-control-center (1.28.2-1menta1) unstable; urgency=medium
+
+  * Menta Linux rebuild: new upstream release 1.28.2.
+  * Add patches from upstream PRs 832, 839, 840 and 841 (3001-3004).
+  * debian/rules: Build with meson (typing-break Wayland idle support is
+    meson-only); add wayland build-deps.
+  * debian/watch: Track GitHub releases.
+
+ -- Menta Linux <packages@menta-linux.invalid>  Sat, 14 Nov 2026 17:19:28 -0700
+
 mate-control-center (1.28.1-1) unstable; urgency=medium
 
   [ Sui Vue ]

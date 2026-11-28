@@ -1,4 +1,7 @@
-Version: 5
-Search-Mode: plain
-Source: https://api.github.com/repos/mate-desktop/@PACKAGE@/releases?per_page=50
-Matching-Pattern: https://github.com/[^/]+/[^/]+/releases/download/(?:v[\d\.]+)/@PACKAGE@@ANY_VERSION@@ARCHIVE_EXT@
+version=4
+# Upstream attaches one mate-control-center-X.Y.Z.tar.xz asset to each GitHub release. The release *tags* are read from the public releases page (no
+# API token and no API rate limit); the asset URL and the file name are derived from the tag. Exactly ONE capture group of version characters.
+opts="downloadurlmangle=s%.*/releases/tag/v([\d.]+)$%https://github.com/mate-desktop/mate-control-center/releases/download/v$1/mate-control-center-$1.tar.xz%,\
+filenamemangle=s%.*/releases/tag/v([\d.]+)$%mate-control-center-$1.tar.xz%" \
+https://github.com/mate-desktop/mate-control-center/releases \
+    .*/releases/tag/v([\d.]+)

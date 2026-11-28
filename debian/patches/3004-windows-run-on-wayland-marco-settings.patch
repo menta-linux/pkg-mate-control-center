@@ -1,0 +1,169 @@
+Description: windows: run on Wayland compositors that use Marco's settings
+Author: Kerem Soke
+Origin: https://github.com/KeremSoke/mate-control-center/commit/b4186a750ee83d8a9ce6852b271ed1d505acd257
+Forwarded: no
+
+From b4186a750ee83d8a9ce6852b271ed1d505acd257 Mon Sep 17 00:00:00 2001
+From: KeremSoke <keremsoke@gmail.com>
+Date: Sat, 14 Nov 2026 20:26:46 -0700
+Subject: [PATCH] windows: run on Wayland compositors that use Marco's settings
+
+---
+ capplets/windows/mate-window-properties.c | 106 ++++++++++++++++++++--
+ 1 file changed, 96 insertions(+), 10 deletions(-)
+
+diff --git a/capplets/windows/mate-window-properties.c b/capplets/windows/mate-window-properties.c
+index 45bf0062b..87086c56c 100644
+--- a/capplets/windows/mate-window-properties.c
++++ b/capplets/windows/mate-window-properties.c
+@@ -346,6 +346,38 @@ set_alt_click_value (void)
+     }
+ }
+ 
++/* Without X there is no window manager to ask. Some Wayland compositors
++ * read the same org.mate.Marco.* settings as Marco; they own this name on
++ * the session bus while they run. */
++static gboolean
++compositor_uses_marco_settings (void)
++{
++    GDBusConnection *bus;
++    GVariant *reply;
++    gboolean running = FALSE;
++
++    bus = g_bus_get_sync (G_BUS_TYPE_SESSION, NULL, NULL);
++    if (bus == NULL)
++        return FALSE;
++
++    reply = g_dbus_connection_call_sync (bus,
++                                         "org.freedesktop.DBus",
++                                         "/org/freedesktop/DBus",
++                                         "org.freedesktop.DBus",
++                                         "NameHasOwner",
++                                         g_variant_new ("(s)", "org.mate.Polo"),
++                                         G_VARIANT_TYPE ("(b)"),
++                                         G_DBUS_CALL_FLAGS_NONE,
++                                         1000, NULL, NULL);
++    if (reply != NULL) {
++        g_variant_get (reply, "(b)", &running);
++        g_variant_unref (reply);
++    }
++    g_object_unref (bus);
++
++    return running;
++}
++
+ static void
+ wm_unsupported (void)
+ {
+@@ -402,14 +434,20 @@ main (int argc, char **argv)
+     capplet_init (NULL, &argc, &argv);
+ 
+     screen = gdk_display_get_default_screen (gdk_display_get_default ());
+-    current_wm = gdk_x11_screen_get_window_manager_name (screen);
+ 
+-    if (g_strcmp0 (current_wm, WM_COMMON_METACITY) == 0) {
+-        mate_metacity_config_tool ();
+-        return 0;
+-    }
++    if (GDK_IS_X11_SCREEN (screen)) {
++        current_wm = gdk_x11_screen_get_window_manager_name (screen);
+ 
+-    if (g_strcmp0 (current_wm, WM_COMMON_MARCO) != 0) {
++        if (g_strcmp0 (current_wm, WM_COMMON_METACITY) == 0) {
++            mate_metacity_config_tool ();
++            return 0;
++        }
++
++        if (g_strcmp0 (current_wm, WM_COMMON_MARCO) != 0) {
++            wm_unsupported ();
++            return 1;
++        }
++    } else if (!compositor_uses_marco_settings ()) {
+         wm_unsupported ();
+         return 1;
+     }
+@@ -551,8 +589,10 @@ main (int argc, char **argv)
+     g_signal_connect (marco_settings, "changed::" MARCO_FOCUS_KEY,
+                       G_CALLBACK (mouse_focus_changed_callback), NULL);
+ 
+-    g_signal_connect (screen, "window_manager_changed",
+-                      G_CALLBACK (wm_changed_callback), NULL);
++    /* Only X screens report a change of window manager */
++    if (GDK_IS_X11_SCREEN (screen))
++        g_signal_connect (screen, "window_manager_changed",
++                          G_CALLBACK (wm_changed_callback), NULL);
+ 
+     i = 0;
+     while (i < n_mouse_modifiers) {
+@@ -591,8 +631,11 @@ fill_radio (GtkRadioButton     *group,
+     gtk_widget_show (modifier->radio);
+ }
+ 
++/* Which of Super, Hyper and Meta are modifiers of their own, from the X server */
+ static void
+-reload_mouse_modifiers (void)
++get_x11_modifiers (gboolean *have_super_out,
++                   gboolean *have_hyper_out,
++                   gboolean *have_meta_out)
+ {
+     XModifierKeymap *modmap;
+     KeySym *keymap;
+@@ -604,7 +647,6 @@ reload_mouse_modifiers (void)
+     gboolean have_super;
+     int min_keycode, max_keycode;
+     int mod_meta, mod_super, mod_hyper;
+-    AtkObject *label_accessible;
+ 
+     XDisplayKeycodes (gdk_x11_display_get_xdisplay(gdk_display_get_default()),
+                       &min_keycode,
+@@ -662,6 +704,50 @@ reload_mouse_modifiers (void)
+     XFreeModifiermap (modmap);
+     XFree (keymap);
+ 
++    *have_super_out = have_super;
++    *have_hyper_out = have_hyper;
++    *have_meta_out = have_meta;
++}
++
++static void
++get_keymap_modifiers (gboolean *have_super,
++                      gboolean *have_hyper,
++                      gboolean *have_meta)
++{
++    const GdkModifierType real = GDK_MOD1_MASK | GDK_MOD2_MASK | GDK_MOD3_MASK |
++                                 GDK_MOD4_MASK | GDK_MOD5_MASK;
++    GdkKeymap *keymap = gdk_keymap_get_for_display (gdk_display_get_default ());
++    GdkModifierType super = GDK_SUPER_MASK;
++    GdkModifierType hyper = GDK_HYPER_MASK;
++    GdkModifierType meta = GDK_META_MASK;
++
++    gdk_keymap_map_virtual_modifiers (keymap, &super);
++    gdk_keymap_map_virtual_modifiers (keymap, &hyper);
++    gdk_keymap_map_virtual_modifiers (keymap, &meta);
++    super &= real;
++    hyper &= real;
++    meta &= real;
++
++    /* Meta on Alt's modifier is just Alt */
++    *have_meta = meta != 0 && meta != GDK_MOD1_MASK;
++    *have_super = super != 0 && super != meta;
++    *have_hyper = hyper != 0 && hyper != meta && hyper != super;
++}
++
++static void
++reload_mouse_modifiers (void)
++{
++    int i;
++    gboolean have_meta;
++    gboolean have_hyper;
++    gboolean have_super;
++    AtkObject *label_accessible;
++
++    if (GDK_IS_X11_DISPLAY (gdk_display_get_default ()))
++        get_x11_modifiers (&have_super, &have_hyper, &have_meta);
++    else
++        get_keymap_modifiers (&have_super, &have_hyper, &have_meta);
++
+     i = 0;
+     while (i < n_mouse_modifiers) {
+         g_free (mouse_modifiers[i].name);
